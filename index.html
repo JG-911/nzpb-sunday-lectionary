@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A Church-year lectionary browser for Sundays, principal feasts and Calendar observances." />
+    <title>NZPB Sunday Lectionary</title>
+    <link rel="stylesheet" href="styles.css?v=48" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <h1>NZPB Sunday Lectionary</h1>
+        <img class="church-logo" src="https://anglican.org.nz/var/plain_site/storage/images/media/images/colour-logo/16098-1-eng-AU/Colour-Logo_medium.jpg" alt="Anglican Church in Aotearoa, New Zealand and Polynesia logo" />
+        <p class="header-subtitle">A New Zealand Anglican Lectionary</p>
+      </header>
+
+      <main class="layout">
+        <aside class="date-panel" aria-label="Date selection">
+          <section class="calendar-card" aria-label="Calendar">
+            <div class="calendar-heading">
+              <button id="previous-month" class="icon-button" type="button" aria-label="Previous month">‹</button>
+              <div class="calendar-selectors">
+                <label class="visually-hidden" for="month-select">Month</label>
+                <select id="month-select" aria-label="Month"></select>
+                <label class="visually-hidden" for="year-select">Year</label>
+                <input id="year-select" type="number" min="1600" max="4099" step="1" inputmode="numeric" aria-label="Year" />
+                <h2 id="month-title" class="visually-hidden"></h2>
+              </div>
+              <button id="next-month" class="icon-button" type="button" aria-label="Next month">›</button>
+            </div>
+            <div class="weekday-row" aria-hidden="true">
+              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <div class="calendar-legend"><span class="legend-principal"></span> Sunday or principal day <span class="legend-festival"></span> Listed festival <span class="legend-collision">!</span> Transfer or collision</div>
+            <div id="date-adjustment" class="date-adjustment" hidden>
+              <span id="date-adjustment-text"></span>
+              <div class="segmented-control" aria-label="Choose Sunday direction">
+                <button id="previous-mode" type="button">Previous</button>
+                <button id="next-mode" type="button" class="active">Next</button>
+              </div>
+            </div>
+            <div id="transfer-choice" class="transfer-choice" hidden>
+              <span id="transfer-choice-text"></span>
+              <div class="segmented-control" aria-label="Choose feast observance date">
+                <button id="calendar-date-mode" type="button">Calendar date</button>
+                <button id="assigned-sunday-mode" type="button">Assigned Sunday</button>
+              </div>
+            </div>
+            <button id="today-button" class="calendar-today-button" type="button">Today</button>
+          </section>
+
+        </aside>
+
+        <section class="reading-panel" aria-live="polite">
+          <div id="notice" class="notice" hidden></div>
+
+          <div class="reading-heading">
+            <div>
+              <div id="resolved-date" class="resolved-date"></div>
+              <h2 id="sunday-name">Select a date</h2>
+              <p id="sunday-subheading" class="sunday-subheading"></p>
+            </div>
+            <div class="metadata">
+              <span id="cycle-badge" class="metadata-pill"></span>
+              <span id="season-badge" class="metadata-pill season-pill"></span>
+              <span id="colour-badge" class="metadata-pill colour-pill"><span id="colour-swatch" class="colour-swatch"></span><span id="colour-label"></span></span>
+            </div>
+          </div>
+
+          <div id="reading-content">
+            <section id="saint-date-choice" class="saint-date-choice" hidden>
+              <span>Authorised Calendar dates</span>
+              <p id="saint-date-choice-text"></p>
+              <strong id="saint-observance-status" class="saint-observance-status"></strong>
+              <div id="saint-observance-choice" class="segmented-control saint-observance-choice" role="group" aria-label="Record where this feast is observed">
+                <button id="saint-choice-unconfirmed" type="button">Unconfirmed</button>
+                <button id="saint-choice-official" type="button">Use official date</button>
+                <button id="saint-choice-alternative" type="button">Use alternative</button>
+              </div>
+              <div id="saint-date-links" class="saint-date-links"></div>
+            </section>
+
+            <section id="christmas-proper-links" class="christmas-proper-links" hidden>
+              <span>Christmas reading sets</span>
+              <p>Open or copy one complete appointed Proper at a time.</p>
+              <div id="christmas-proper-buttons" class="christmas-proper-buttons"></div>
+            </section>
+
+            <section id="required-reading-guidance" class="required-reading-guidance" hidden>
+              <div class="required-reading-instruction">
+                <span id="required-reading-label">Required reading</span>
+                <strong id="required-reading-text"></strong>
+                <p id="required-reading-explanation"></p>
+                <a id="required-reading-source-link" href="#" target="_blank" rel="noreferrer">Open annual Lectionary source ↗</a>
+              </div>
+            </section>
+
+            <section id="te-pouhere-provision" class="te-pouhere-provision" hidden>
+              <div class="te-pouhere-status">
+                <span>Designated Sunday and precedence</span>
+                <strong id="te-pouhere-status-text"></strong>
+                <p id="te-pouhere-precedence-text"></p>
+                <div class="te-pouhere-source-links">
+                  <a id="te-pouhere-lectionary-link" href="#" target="_blank" rel="noreferrer">Open annual Lectionary source ↗</a>
+                  <a id="te-pouhere-calendar-link" href="#" target="_blank" rel="noreferrer">Open NZPB Calendar source ↗</a>
+                </div>
+              </div>
+              <article class="track-card te-pouhere-card">
+                <header><span class="track-kicker">Specific provision</span><h3>Te Pouhere Sunday</h3></header>
+                <dl>
+                  <div><dt>Sentence</dt><dd id="te-pouhere-sentence"></dd></div>
+                  <div><dt>First Reading</dt><dd id="te-pouhere-ot"></dd></div>
+                  <div><dt>Psalm</dt><dd id="te-pouhere-psalm"></dd></div>
+                  <div><dt>Second Reading</dt><dd id="te-pouhere-nt"></dd></div>
+                  <div><dt>Gospel</dt><dd id="te-pouhere-gospel"></dd></div>
+                  <div><dt>Post-communion</dt><dd id="te-pouhere-post-communion"></dd></div>
+                </dl>
+              </article>
+            </section>
+
+            <div id="ordinary-alternative-heading" class="ordinary-alternative-heading" hidden>
+              <span>Alternative provision for the same date</span>
+              <strong id="ordinary-alternative-title"></strong>
+              <p>Use the following Ordinary Sunday RCL set when Te Pouhere Sunday is not being observed.</p>
+            </div>
+
+            <div id="track-choice" class="segmented-control track-choice" role="group" aria-label="Choose reading track" hidden>
+              <button id="continuous-track-mode" type="button" class="active" aria-pressed="true">Continuous</button>
+              <button id="related-track-mode" type="button" aria-pressed="false">Related</button>
+            </div>
+
+            <div id="tracks" class="tracks">
+              <article id="primary-track" class="track-card continuous-card">
+                <header>
+                  <h3 id="primary-track-title">Continuous</h3>
+                </header>
+                <dl>
+                  <div><dt>Old Testament</dt><dd id="continuous-ot"></dd></div>
+                  <div><dt>Psalm / Canticle</dt><dd id="continuous-psalm"></dd></div>
+                  <div class="shared-reading"><dt>New Testament</dt><dd id="continuous-nt"></dd></div>
+                  <div class="shared-reading"><dt>Gospel</dt><dd id="continuous-gospel"></dd></div>
+                </dl>
+              </article>
+
+              <article id="related-track" class="track-card related-card">
+                <header>
+                  <h3>Related</h3>
+                </header>
+                <dl>
+                  <div><dt>Old Testament</dt><dd id="related-ot"></dd></div>
+                  <div><dt>Psalm / Canticle</dt><dd id="related-psalm"></dd></div>
+                  <div class="shared-reading"><dt>New Testament</dt><dd id="related-nt"></dd></div>
+                  <div class="shared-reading"><dt>Gospel</dt><dd id="related-gospel"></dd></div>
+                </dl>
+              </article>
+            </div>
+
+            <section id="underlying-sunday-provision" class="underlying-sunday-provision" hidden>
+              <div class="underlying-sunday-heading">
+                <span>Underlying Sunday provision</span>
+                <strong id="underlying-sunday-title"></strong>
+                <p id="underlying-sunday-note"></p>
+              </div>
+              <div id="underlying-track-choice" class="segmented-control track-choice" role="group" aria-label="Choose underlying Sunday reading track" hidden>
+                <button id="underlying-continuous-track-mode" type="button" class="active" aria-pressed="true">Continuous</button>
+                <button id="underlying-related-track-mode" type="button" aria-pressed="false">Related</button>
+              </div>
+              <div id="underlying-sunday-tracks" class="tracks">
+                <article id="underlying-primary-track" class="track-card continuous-card">
+                  <header>
+                    <h3 id="underlying-primary-title">Continuous</h3>
+                  </header>
+                  <dl>
+                    <div><dt>Old Testament</dt><dd id="underlying-continuous-ot"></dd></div>
+                    <div><dt>Psalm / Canticle</dt><dd id="underlying-continuous-psalm"></dd></div>
+                    <div><dt>New Testament</dt><dd id="underlying-continuous-nt"></dd></div>
+                    <div><dt>Gospel</dt><dd id="underlying-continuous-gospel"></dd></div>
+                  </dl>
+                </article>
+                <article id="underlying-related-track" class="track-card related-card">
+                  <header><h3>Related</h3></header>
+                  <dl>
+                    <div><dt>Old Testament</dt><dd id="underlying-related-ot"></dd></div>
+                    <div><dt>Psalm / Canticle</dt><dd id="underlying-related-psalm"></dd></div>
+                    <div><dt>New Testament</dt><dd id="underlying-related-nt"></dd></div>
+                    <div><dt>Gospel</dt><dd id="underlying-related-gospel"></dd></div>
+                  </dl>
+                </article>
+              </div>
+            </section>
+
+            <section id="easter-late-service" class="easter-late-service" hidden>
+              <article class="track-card late-easter-card">
+                <header>
+                  <span id="easter-late-kicker" class="track-kicker"></span>
+                  <h3 id="easter-late-title"></h3>
+                </header>
+                <dl>
+                  <div><dt>Old Testament</dt><dd id="easter-late-ot"></dd></div>
+                  <div><dt>Psalm / Canticle</dt><dd id="easter-late-psalm"></dd></div>
+                  <div><dt>New Testament</dt><dd id="easter-late-nt"></dd></div>
+                  <div><dt>Gospel</dt><dd id="easter-late-gospel"></dd></div>
+                </dl>
+              </article>
+            </section>
+
+            <section id="palm-liturgy" class="palm-liturgy" hidden>
+              <div class="palm-instruction">
+                <span>How the two liturgies are used</span>
+                <p id="palm-instruction-text"></p>
+              </div>
+              <div class="palm-liturgy-grid">
+                <article class="track-card palms-card">
+                  <header><span class="track-kicker">Procession and entry</span><h3>Liturgy of the Palms</h3></header>
+                  <dl>
+                    <div><dt>Gospel</dt><dd id="palms-gospel"></dd></div>
+                    <div><dt>Psalm</dt><dd id="palms-psalm"></dd></div>
+                  </dl>
+                  <p id="palms-collect" class="liturgy-collect"></p>
+                </article>
+                <article class="track-card passion-card">
+                  <header><span class="track-kicker">Principal readings</span><h3>Liturgy of the Passion</h3></header>
+                  <dl>
+                    <div class="replaceable-reading"><dt>First Reading <span>replaceable if no procession</span></dt><dd id="passion-ot"></dd></div>
+                    <div class="replaceable-reading"><dt>Psalm <span>replaceable if no procession</span></dt><dd id="passion-psalm"></dd></div>
+                    <div><dt>New Testament</dt><dd id="passion-nt"></dd></div>
+                    <div><dt>Passion Gospel</dt><dd id="passion-gospel"></dd></div>
+                  </dl>
+                </article>
+              </div>
+            </section>
+
+          </div>
+
+          <div id="empty-state" class="empty-state" hidden>
+            <div class="empty-mark">✦</div>
+            <h3 id="empty-title"></h3>
+            <p id="empty-message"></p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>© The Anglican Church in Aotearoa New Zealand and Polynesia – used with permission.</p>
+      </footer>
+    </div>
+
+    <script src="data/sundays-data.js?v=34"></script>
+    <script src="data/sunday-variations-data.js?v=34"></script>
+    <script src="data/feasts-data.js?v=34"></script>
+    <script src="data/saints-data.js?v=34"></script>
+    <script src="data/palm-sunday-data.js?v=34"></script>
+    <script src="data/mandatory-reading-data.js?v=34"></script>
+    <script src="data/easter-day-data.js?v=34"></script>
+    <script src="data/te-pouhere-data.js?v=34"></script>
+    <script src="data/liturgical-colours-data.js?v=34"></script>
+    <script src="data/precedence-audit-data.js?v=34"></script>
+    <script type="module" src="app.js?v=48"></script>
+  </body>
+</html>
