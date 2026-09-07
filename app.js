@@ -343,23 +343,45 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=56";
     if (!show) return;
     const vigil = window.EASTER_VIGIL_DATA;
     $("vigil-timing").textContent = `${vigil.timing} Vigil colour: White.`;
-    $("vigil-instruction").textContent = vigil.instruction;
+    $("vigil-instruction").textContent = `${vigil.instruction} Readings are listed Old Testament, New Testament, then Gospel; Psalms are numerical, followed by canticles.`;
     const readings = $("vigil-readings");
     readings.replaceChildren();
-    const pairs = [...vigil.oldTestament.map((pair, i) => ({ ...pair, title: `Old Testament ${i + 1}` })),
-      { ...vigil.newTestament, title: "New Testament" },
-      { reading: vigil.gospels[cycle], title: "Gospel", required: true }];
-    pairs.forEach(pair => {
+    // Display order is separate from the source pairs and worship sequence.
+    // Apocryphal books follow the Old Testament, before the New Testament.
+    const bookOrder = ["Genesis", "Exodus", "Psalm", "Proverbs", "Isaiah", "Ezekiel", "Zephaniah", "Baruch", "Romans", "Matthew", "Mark", "Luke"];
+    const ordered = (items, field) => items.sort((a, b) => {
+      if (field === "response") {
+        const psalmOrder = Number(!a.value.startsWith("Psalm")) - Number(!b.value.startsWith("Psalm"));
+        if (psalmOrder) return psalmOrder;
+      }
+      const book = value => bookOrder.findIndex(name => value.startsWith(name));
+      return book(a.value) - book(b.value) || a.value.localeCompare(b.value, "en", { numeric: true });
+    });
+    const pairs = [...vigil.oldTestament, vigil.newTestament, { reading: vigil.gospels[cycle], required: true }];
+    const groups = [
+      { title: "Readings Required", required: true, field: "reading" },
+      { title: "Psalms or Canticle Required", required: true, field: "response" },
+      { title: "Readings Optional", required: false, field: "reading" },
+      { title: "Psalms or Canticle Optional", required: false, field: "response" }
+    ];
+    groups.forEach(section => {
+      const items = ordered(pairs.filter(pair => Boolean(pair.required) === section.required && pair[section.field]).flatMap(pair => {
+        const alternatives = section.field === "reading" ? pair.reading.split(" or ") : [pair.response];
+        return alternatives.map(value => ({
+          value,
+          label: section.field === "response" ? `Response for ${pair.reading}`
+            : alternatives.length > 1 ? `Alternative to ${alternatives.filter(other => other !== value).join(" or ")}` : "Reading"
+        }));
+      }), section.field);
       const card = document.createElement("article");
       card.className = "track-card vigil-card";
       const header = document.createElement("header");
       const title = document.createElement("h3");
-      title.textContent = `${pair.title}${pair.required ? " · Required" : ""}`;
+      title.textContent = section.title;
       header.appendChild(title);
       card.appendChild(header);
       const list = document.createElement("dl");
-      for (const [label, value] of [["Reading", pair.reading], ["Psalm / Canticle", pair.response]]) {
-        if (!value) continue;
+      for (const {label, value} of items) {
         const group = document.createElement("div"), term = document.createElement("dt"), reading = document.createElement("dd");
         term.textContent = label;
         setReading(reading, value);
@@ -367,7 +389,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=56";
         list.appendChild(group);
       }
       card.appendChild(list);
-      setReadingSetActions(card, [pair.reading, pair.response || ""], pair.response ? "reading and response" : "Gospel");
+      setReadingSetActions(card, items.map(item => item.value), section.title);
       readings.appendChild(card);
     });
   }
