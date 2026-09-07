@@ -1,4 +1,4 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=56";
+import { LectionaryCore as core } from "./lectionary-core.js?v=59";
 
 (function () {
   "use strict";
