@@ -566,13 +566,15 @@
 
       const ordinaryFive = sundayOnOrAfter(atNoon(followingYear, 1, 4));
       const number = 5 + Math.floor(diffDays(sunday, ordinaryFive) / 7);
-      if (number >= 5 && number <= 9) return classification(ordinaryName(number), "Ordinary Time", context, sunday, `Pre-Lent Ordinary Time: Ordinary ${number}`, warning);
+      if (number >= 5 && number <= 9) return classification(ordinaryName(number), "Ordinary Time", context, sunday, `Pre-Lent Epiphany sequence: Ordinary ${number}${number >= 6 ? ` / Proper ${number - 5}` : " (no numbered RCL Proper)"}. Placement follows Epiphany, not a backwards count through Lent and Easter.`, warning);
     }
 
     if (sunday > trinity && sunday < nextAdvent) {
-      const ordinaryTen = sundayOnOrAfter(atNoon(followingYear, 5, 5));
-      const number = 10 + Math.round(diffDays(sunday, ordinaryTen) / 7);
-      if (number >= 5 && number <= 34) return classification(ordinaryName(number), "Ordinary Time", context, sunday, `Post-Trinity date sequence: Ordinary ${number}`, warning);
+      const christTheKing = addDays(nextAdvent, -7);
+      const weeksBeforeKing = Math.round(diffDays(christTheKing, sunday) / 7);
+      const proper = 29 - weeksBeforeKing;
+      const number = proper + 5;
+      if (number >= 8 && number <= 34) return classification(ordinaryName(number), "Ordinary Time", context, sunday, `Post-Trinity sequence: Ordinary ${number} / Proper ${proper}, ${weeksBeforeKing} week(s) before Christ the King (Proper 29, ${formatISO(christTheKing)}). Equivalent to the recurring RCL date windows; Easter determines the first available Proper after Trinity. Displacing feasts do not renumber the underlying Sunday or later weeks.`, warning);
     }
 
     return unavailable("Sunday not classified", "This date falls outside the rules currently represented in the specification.", context, sunday, "No matching rule");
@@ -619,7 +621,12 @@
       return { displayDate: date, result: classifyObservance(date, precedence), adjusted: false, observances };
     }
     const sunday = resolveSelectedDate(date, mode);
-    return { displayDate: sunday, result: classifySunday(sunday, placements), adjusted: !sameDate(date, sunday), observances };
+    // Resolve the destination's precedence exactly as a direct Sunday click does.
+    if (!sameDate(date, sunday)) {
+      const destination = resolveSelection(sunday, mode, placements);
+      return { ...destination, adjusted: true };
+    }
+    return { displayDate: sunday, result: classifySunday(sunday, placements), adjusted: false, observances };
   }
 
   function findEntry(result, data) {

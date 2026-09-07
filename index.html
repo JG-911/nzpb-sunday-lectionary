@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A Church-year lectionary browser for Sundays, principal feasts and Calendar observances." />
     <title>NZPB Sunday Lectionary</title>
-    <link rel="stylesheet" href="styles.css?v=48" />
+    <link rel="stylesheet" href="styles.css?v=55" />
   </head>
   <body>
     <div class="app-shell">
@@ -70,6 +70,13 @@
           </div>
 
           <div id="reading-content">
+            <p class="reading-link-notice">Readings link to Bible Gateway — <label class="visually-hidden" for="bible-version">Bible version</label><select id="bible-version" title="Authorised translations available on Bible Gateway; worship use remains subject to diocesan approval."><option value="NRSVA">NRSVA</option><option value="RSV">RSV</option><option value="GNT">GNT (Good News)</option><option value="CEV">CEV</option><option value="ESV">ESV</option><option value="NLT">NLT</option><option value="KJV">KJV</option></select> version <span id="apocrypha-status" hidden>— no apocrypha</span></p>
+            <details id="easter-vigil" class="easter-vigil" hidden>
+              <summary>The Great Vigil of Easter</summary>
+              <p id="vigil-timing"></p>
+              <p id="vigil-instruction"></p>
+              <div id="vigil-readings"></div>
+            </details>
             <section id="saint-date-choice" class="saint-date-choice" hidden>
               <span>Authorised Calendar dates</span>
               <p id="saint-date-choice-text"></p>
@@ -93,7 +100,6 @@
                 <span id="required-reading-label">Required reading</span>
                 <strong id="required-reading-text"></strong>
                 <p id="required-reading-explanation"></p>
-                <a id="required-reading-source-link" href="#" target="_blank" rel="noreferrer">Open annual Lectionary source ↗</a>
               </div>
             </section>
 
@@ -247,16 +253,20 @@
       </footer>
     </div>
 
-    <script src="data/sundays-data.js?v=34"></script>
-    <script src="data/sunday-variations-data.js?v=34"></script>
-    <script src="data/feasts-data.js?v=34"></script>
-    <script src="data/saints-data.js?v=34"></script>
-    <script src="data/palm-sunday-data.js?v=34"></script>
-    <script src="data/mandatory-reading-data.js?v=34"></script>
-    <script src="data/easter-day-data.js?v=34"></script>
-    <script src="data/te-pouhere-data.js?v=34"></script>
-    <script src="data/liturgical-colours-data.js?v=34"></script>
-    <script src="data/precedence-audit-data.js?v=34"></script>
-    <script type="module" src="app.js?v=48"></script>
+    <script src="data/sundays-data.js?v=50"></script>
+    <script src="data/sunday-variations-data.js?v=50"></script>
+    <script src="data/verification-status-data.js?v=50"></script>
+    <script src="data/feasts-data.js?v=50"></script>
+    <script src="data/saints-data.js?v=50"></script>
+    <script src="data/palm-sunday-data.js?v=50"></script>
+    <script src="data/mandatory-reading-data.js?v=50"></script>
+    <script src="data/easter-day-data.js?v=50"></script>
+    <script src="data/te-pouhere-data.js?v=50"></script>
+    <script src="data/liturgical-colours-data.js?v=50"></script>
+    <script src="data/precedence-audit-data.js?v=50"></script>
+    <script src="embed-height.js?v=50"></script>
+    <script src="data/easter-vigil-data.js?v=55"></script>
+    <script src="data/reading-revisions-data.js?v=56"></script>
+    <script type="module" src="app.js?v=56"></script>
   </body>
 </html>

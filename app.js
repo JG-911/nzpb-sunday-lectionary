@@ -1,13 +1,13 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=44";
+import { LectionaryCore as core } from "./lectionary-core.js?v=56";
 
 (function () {
   "use strict";
 
   const data = [...(window.SUNDAY_DATA || []), ...(window.FEAST_DATA || []), ...(window.SAINTS_DATA || [])];
-  const today = core.cloneDate(new Date());
+  let today = core.cloneDate(new Date());
   const FESTIVAL_CHOICE_STORAGE_KEY = "nzpb-lectionary-festival-choices-v1";
+  const PRINCIPAL_CHOICE_STORAGE_KEY = "nzpb-lectionary-principal-choices-v1";
   const BIBLE_GATEWAY_BASE = "https://www.biblegateway.com/passage/";
-  const BIBLE_GATEWAY_VERSION = "NRSVA";
 
   function loadFestivalChoices() {
     try {
@@ -18,15 +18,29 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
     }
   }
 
+  function loadPrincipalChoices() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PRINCIPAL_CHOICE_STORAGE_KEY) || "{}");
+      return Object.fromEntries(Object.entries(saved || {}).filter(([key, value]) =>
+        /^(epiphany|presentation|allSaints)-\d{4}$/.test(key) && ["date", "sunday"].includes(value)));
+    } catch (_error) { return {}; }
+  }
+
+  function savePrincipalChoices() {
+    try { localStorage.setItem(PRINCIPAL_CHOICE_STORAGE_KEY, JSON.stringify(state.feastPlacement)); } catch (_error) { /* Device storage may be unavailable. */ }
+  }
+
   const state = {
     selected: today,
     month: new Date(today.getFullYear(), today.getMonth(), 1, 12),
     direction: "next",
-    feastPlacement: {},
+    feastPlacement: loadPrincipalChoices(),
     festivalChoices: loadFestivalChoices(),
     festivalChoiceContext: null,
     festivalReadingOverride: null,
     trackMode: "continuous",
+    optionalChoices: {},
+    bibleVersion: "NRSVA",
     underlyingTrackMode: "continuous"
   };
 
@@ -37,8 +51,14 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
 
   function refreshFestivalChoices() {
     const saved = loadFestivalChoices();
-    if (JSON.stringify(saved) === JSON.stringify(state.festivalChoices)) return;
+    const principal = loadPrincipalChoices();
+    const currentDay = core.cloneDate(new Date());
+    if (JSON.stringify(saved) === JSON.stringify(state.festivalChoices)
+      && JSON.stringify(principal) === JSON.stringify(state.feastPlacement)
+      && core.sameDate(today, currentDay)) return;
+    today = currentDay;
     state.festivalChoices = saved;
+    state.feastPlacement = principal;
     render();
   }
 
@@ -56,7 +76,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
     saintObservanceStatus: $("saint-observance-status"), saintObservanceChoice: $("saint-observance-choice"),
     saintChoiceUnconfirmed: $("saint-choice-unconfirmed"), saintChoiceOfficial: $("saint-choice-official"), saintChoiceAlternative: $("saint-choice-alternative"),
     christmasProperLinks: $("christmas-proper-links"), christmasProperButtons: $("christmas-proper-buttons"),
-    requiredReadingGuidance: $("required-reading-guidance"), requiredReadingLabel: $("required-reading-label"), requiredReadingText: $("required-reading-text"), requiredReadingExplanation: $("required-reading-explanation"), requiredReadingSourceLink: $("required-reading-source-link"),
+    requiredReadingGuidance: $("required-reading-guidance"), requiredReadingLabel: $("required-reading-label"), requiredReadingText: $("required-reading-text"), requiredReadingExplanation: $("required-reading-explanation"),
     easterLateService: $("easter-late-service"), easterLateKicker: $("easter-late-kicker"), easterLateTitle: $("easter-late-title"),
     easterLateOt: $("easter-late-ot"), easterLatePsalm: $("easter-late-psalm"), easterLateNt: $("easter-late-nt"), easterLateGospel: $("easter-late-gospel"),
     tePouhereProvision: $("te-pouhere-provision"), tePouhereStatusText: $("te-pouhere-status-text"), tePouherePrecedenceText: $("te-pouhere-precedence-text"),
@@ -80,13 +100,16 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
   function setText(element, text) { element.textContent = text || "—"; }
 
   function stripReadingLabel(value) {
-    return String(value || "").replace(/^(?:Proper\s+(?:I{1,3}|[123])|Continuous|Related|Liturgy of the Palms|Liturgy of the Passion):\s*/i, "").trim();
+    return String(value || "")
+      .replace(/^.*?:\s*(?=(?:[1-3]\s+)?[A-Za-z][A-Za-z .’'\-]*?\s+\d)/, "")
+      .replace(/^(?:or|and)\s+/i, "").trim();
   }
 
   function readingReferences(value) {
     const references = [];
     let inheritedBook = "";
     String(value || "").split(/\r?\n/).forEach(line => {
+      if (/^\s*NZPB:\s*/i.test(line)) return;
       stripReadingLabel(line).split(/\s+(?:or|and)\s+/i).forEach(part => {
         let reference = part.trim();
         if (!reference || reference === "—") return;
@@ -99,55 +122,155 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
     return references;
   }
 
-  function gatewayReference(value) {
+  function gatewayReference(value, includeOptional = true) {
     const partialVerse = /\d+[a-d]\b/i.test(value);
     let normalized = String(value || "")
       .replace(/[–—]/g, "-")
+      // Optional starting/ending boundaries are alternatives, not extra hyphens.
+      .replace(/\((\d+[a-d]?)-\)(\d+[a-d]?)/gi, (_, optional, required) => includeOptional ? optional : required)
+      .replace(/(\d+[a-d]?)\(-(\d+[a-d]?)\)/gi, (_, required, optional) => includeOptional ? optional : required)
+      .replace(/\(([^()]*)\)/g, (_, optional) => includeOptional ? optional : "")
       .replace(/(\d+)[a-d]\b/gi, "$1")
-      .replace(/[()]/g, "")
+      .replace(/:\s*,\s*/g, ":")
+      .replace(/,\s*(?=,|;|$)/g, "")
       .replace(/\s+/g, " ")
       .trim();
+    // Merge overlapping same-chapter ranges after expanding part-verse letters.
+    normalized = normalized.replace(/(\d+)-(\d+),\s*(\d+)-(\d+)(?![:\d])/g,
+      (match, a, b, c, d) => Number(c) <= Number(b) && Number(c) >= Number(a)
+        ? `${a}-${Math.max(Number(b), Number(d))}` : match);
     const bookMatch = /^((?:[1-3]\s+)?[A-Za-z][A-Za-z .’'\-]*?)\s+(\d.*)$/.exec(normalized);
     if (bookMatch && normalized.includes(";")) {
       const book = bookMatch[1].trim();
       normalized = normalized.split(/\s*;\s*/).map((part, index) => index > 0 && /^\d/.test(part) ? `${book} ${part}` : part).join("; ");
     }
-    return { source: value, normalized, partialVerse };
+    const valid = normalized.split(/;\s*/).every(part => /^(?:[1-3]\s+)?[A-Za-z][A-Za-z .’'\-]*?\s+\d+(?::\s*\d+)?(?:\s*-\s*\d+(?::\d+)?)?(?:\s*,\s*\d+(?::\d+)?(?:\s*-\s*\d+(?::\d+)?)?)*$/.test(part));
+    return { source: value, normalized, partialVerse, valid };
   }
 
-  function gatewayPassages(readings) {
-    const seen = new Set();
-    return readings.flatMap(readingReferences).map(gatewayReference).filter(item => {
-      if (!item.normalized || seen.has(item.normalized)) return false;
-      seen.add(item.normalized);
-      return true;
+  function gatewayPassages(readings, includeOptional = true) {
+    const seen = new Map();
+    readings.flatMap(readingReferences).map(value => gatewayReference(value, includeOptional)).forEach(item => {
+      if (!item.normalized) return;
+      const existing = seen.get(item.normalized);
+      if (existing) existing.partialVerse ||= item.partialVerse;
+      else seen.set(item.normalized, item);
     });
+    return [...seen.values()];
   }
 
   function gatewayUrl(passages) {
     const search = passages.map(item => item.normalized).join("; ");
-    return `${BIBLE_GATEWAY_BASE}?search=${encodeURIComponent(search)}&version=${encodeURIComponent(BIBLE_GATEWAY_VERSION)}`;
+    return `${BIBLE_GATEWAY_BASE}?search=${encodeURIComponent(search)}&version=${encodeURIComponent(selectedBibleVersion().code)}`;
+  }
+
+  function selectedBibleVersion() {
+    const versions = { NRSVA: true, RSV: true, GNT: true, CEV: false, ESV: false, NLT: false, KJV: false };
+    const code = Object.hasOwn(versions, state.bibleVersion) ? state.bibleVersion : "NRSVA";
+    return { code, apocrypha: versions[code] };
+  }
+
+  function unavailableApocrypha(passages) {
+    return !selectedBibleVersion().apocrypha && passages.some(passage =>
+      /^(?:Wisdom(?: of Solomon)?|Sirach|Ecclesiasticus|Baruch|Tobit|Judith|[1-4] Maccabees|[12] Esdras|Prayer of Manasseh|Susanna|Bel and the Dragon)\s+\d/i.test(passage.normalized));
+  }
+
+  function selectedGatewayPassages(readings) {
+    const seen = new Map();
+    readings.flatMap(readingReferences).forEach(reference => {
+      const passage = gatewayReference(reference, state.optionalChoices[reference] !== false);
+      const existing = seen.get(passage.normalized);
+      if (existing) existing.partialVerse ||= passage.partialVerse;
+      else seen.set(passage.normalized, passage);
+    });
+    return [...seen.values()];
   }
 
   function setReading(element, text) {
     element.replaceChildren();
     const value = text || "—";
+    if (/^Bible: /m.test(value)) {
+      const lines = value.split(/\r?\n/);
+      const bible = lines.find(line => line.startsWith("Bible: "))?.slice(7).split(" or ") || [];
+      const nzpb = lines.find(line => line.startsWith("NZPB: "))?.slice(6).split(" or ") || [];
+      const common = bible.filter(reference => nzpb.includes(reference));
+      if (common.length) {
+        const shared = document.createElement("div");
+        setReading(shared, common.join(" or "));
+        element.appendChild(shared);
+      }
+      lines.forEach(line => {
+        const match = /^(Bible|NZPB):\s*(.*)$/.exec(line);
+        if (!match) return;
+        const reference = match[2].split(" or ").filter(part => !common.includes(part)).join(" or ");
+        if (!reference) return;
+        const group = document.createElement("div");
+        group.className = "psalm-numbering-line";
+        const label = document.createElement("small");
+        label.className = "psalm-numbering-label";
+        label.textContent = match[1];
+        label.title = match[1] === "Bible" ? "Bible Version Numbering — Vanderbilt reference" : "NZPB Psalms numbering — retained NZPB/Lectionary reference";
+        group.appendChild(label);
+        const reading = document.createElement("span");
+        if (match[1] === "Bible") setReading(reading, reference);
+        else { reading.className = "nzpb-numbering-reference"; reading.textContent = reference; }
+        group.appendChild(reading);
+        element.appendChild(group);
+      });
+      return;
+    }
     const readingText = document.createElement("span");
     readingText.className = "reading-text";
     readingText.textContent = value;
     element.appendChild(readingText);
-    const passages = gatewayPassages([value]);
+    const passages = selectedGatewayPassages([value]);
     if (!passages.length) return;
     const links = document.createElement("span");
     links.className = "reading-links";
     passages.forEach(passage => {
+      let choices;
+      const short = gatewayReference(passage.source, false);
+      const extended = gatewayReference(passage.source, true);
+      if (short.normalized !== extended.normalized) {
+        choices = document.createElement("span");
+        choices.className = "segmented-control optional-reading-choice";
+        choices.setAttribute("role", "group");
+        choices.setAttribute("aria-label", `Optional verses for ${passage.source}`);
+        [[false, "Short reading"], [true, "Include optional verses"]].forEach(([include, label]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          const active = (state.optionalChoices[passage.source] !== false) === include;
+          button.className = active ? "active" : "";
+          button.setAttribute("aria-pressed", String(active));
+          button.addEventListener("click", () => {
+            state.optionalChoices[passage.source] = include;
+            renderReading();
+          });
+          choices.appendChild(button);
+        });
+      }
+      if (!passage.valid) {
+        const warning = document.createElement("span");
+        warning.className = "partial-verse-note";
+        warning.textContent = `Link needs checking: ${passage.source}`;
+        links.appendChild(warning);
+        return;
+      }
       const link = document.createElement("a");
       link.className = "reading-link";
       link.href = gatewayUrl([passage]);
       link.target = "_blank";
       link.rel = "noreferrer";
-      link.textContent = `Bible Gateway: ${passage.normalized} ↗`;
+      link.textContent = passage.normalized;
       links.appendChild(link);
+      if (choices) links.appendChild(choices);
+      if (unavailableApocrypha([passage])) {
+        const warning = document.createElement("span");
+        warning.className = "partial-verse-note";
+        warning.textContent = "Not available in this Bible Gateway version — select NRSVA, RSV or GNT for this reading.";
+        links.appendChild(warning);
+      }
     });
     if (passages.some(item => item.partialVerse)) {
       const note = document.createElement("span");
@@ -159,10 +282,14 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
   }
 
   function createSetActions(readings, label) {
-    const passages = gatewayPassages(readings);
+    const passages = selectedGatewayPassages(readings);
     const actions = document.createElement("div");
     actions.className = "reading-set-actions";
     if (!passages.length) return actions;
+    if (passages.some(passage => !passage.valid)) {
+      actions.textContent = "Set link needs checking — one or more references could not be interpreted safely.";
+      return actions;
+    }
     const url = gatewayUrl(passages);
     const open = document.createElement("a");
     open.className = "reading-action";
@@ -185,6 +312,12 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
       window.setTimeout(() => { copy.textContent = original; }, 1800);
     });
     actions.append(open, copy);
+    if (unavailableApocrypha(passages)) {
+      const warning = document.createElement("span");
+      warning.className = "reading-set-warning";
+      warning.textContent = "This set includes Apocrypha unavailable in the selected version. Select NRSVA, RSV or GNT to read the complete set.";
+      actions.appendChild(warning);
+    }
     if (passages.some(item => item.partialVerse)) {
       const warning = document.createElement("span");
       warning.className = "reading-set-warning";
@@ -197,6 +330,46 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
   function setReadingSetActions(card, readings, label) {
     card.querySelector(":scope > header > .reading-set-actions")?.remove();
     card.querySelector(":scope > header")?.appendChild(createSetActions(readings, label));
+  }
+
+  function properTitle(entry, date) {
+    return entry?.properNumber ? `Proper\u00a0${entry.properNumber}` : "";
+  }
+
+  function renderVigil(entry, cycle) {
+    const container = $("easter-vigil");
+    const show = ["Holy Saturday", "Easter Day"].includes(entry?.name);
+    container.hidden = !show;
+    if (!show) return;
+    const vigil = window.EASTER_VIGIL_DATA;
+    $("vigil-timing").textContent = `${vigil.timing} Vigil colour: White.`;
+    $("vigil-instruction").textContent = vigil.instruction;
+    const readings = $("vigil-readings");
+    readings.replaceChildren();
+    const pairs = [...vigil.oldTestament.map((pair, i) => ({ ...pair, title: `Old Testament ${i + 1}` })),
+      { ...vigil.newTestament, title: "New Testament" },
+      { reading: vigil.gospels[cycle], title: "Gospel", required: true }];
+    pairs.forEach(pair => {
+      const card = document.createElement("article");
+      card.className = "track-card vigil-card";
+      const header = document.createElement("header");
+      const title = document.createElement("h3");
+      title.textContent = `${pair.title}${pair.required ? " · Required" : ""}`;
+      header.appendChild(title);
+      card.appendChild(header);
+      const list = document.createElement("dl");
+      for (const [label, value] of [["Reading", pair.reading], ["Psalm / Canticle", pair.response]]) {
+        if (!value) continue;
+        const group = document.createElement("div"), term = document.createElement("dt"), reading = document.createElement("dd");
+        term.textContent = label;
+        setReading(reading, value);
+        group.append(term, reading);
+        list.appendChild(group);
+      }
+      card.appendChild(list);
+      setReadingSetActions(card, [pair.reading, pair.response || ""], pair.response ? "reading and response" : "Gospel");
+      readings.appendChild(card);
+    });
   }
 
   function renderChristmasProperActions(entry) {
@@ -228,6 +401,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
   }
 
   function renderCalendar() {
+    today = core.cloneDate(new Date());
     const monthLabel = new Intl.DateTimeFormat("en-NZ", { month: "long", year: "numeric" }).format(state.month);
     elements.monthTitle.textContent = monthLabel;
     elements.monthSelect.value = String(state.month.getMonth());
@@ -245,7 +419,10 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
       button.className = "calendar-day";
       button.textContent = date.getDate();
       const observances = core.observancesOn(date, calendarPreferences());
-      const observanceNames = observances.map(item => item.name).join("; ");
+      const easter = core.gregorianEaster(date.getFullYear());
+      const vigilName = core.sameDate(date, core.addDays(easter, -1)) ? "Great Vigil of Easter (evening)"
+        : core.sameDate(date, easter) ? "Great Vigil of Easter (early morning)" : "";
+      const observanceNames = [...observances.map(item => item.name), vigilName].filter(Boolean).join("; ");
       const collisionObservances = observances.filter(item => item.collision || (item.nominalDate && item.observedDate && !core.sameDate(item.nominalDate, item.observedDate)));
       const collisionText = collisionObservances.map(item => item.note || `${item.name} is transferred`).join(" ");
       button.setAttribute("aria-label", `${core.formatLong(date)}${observanceNames ? `. ${observanceNames}` : ""}${collisionText ? `. Transfer alert: ${collisionText}` : ""}`);
@@ -362,11 +539,14 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
     }
 
     elements.readingContent.hidden = false;
+    renderVigil(entry, result.context.cycle);
     elements.emptyState.hidden = true;
     elements.sundayName.textContent = result.observance ? result.name : entry.name;
     elements.sundaySubheading.textContent = result.observance
       ? (result.subtitle || (entry.subheading && entry.subheading !== result.name ? entry.subheading : ""))
       : (entry.subheading || "");
+    const proper = properTitle(entry, sunday);
+    if (proper) elements.sundaySubheading.textContent = [elements.sundaySubheading.textContent, proper].filter(Boolean).join(" · ");
     elements.seasonBadge.textContent = result.observance ? result.season : entry.season;
 
     const tePouhereData = core.sameDate(sunday, core.tePouhereSunday(sunday.getFullYear())) ? window.TE_POUHERE_DATA : null;
@@ -388,7 +568,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
       setReading(elements.tePouhereGospel, tePouhereData.gospel);
       setText(elements.tePouherePostCommunion, tePouhereData.postCommunion);
       setReadingSetActions(document.querySelector(".te-pouhere-card"), [tePouhereData.ot, tePouhereData.psalm, tePouhereData.nt, tePouhereData.gospel], "Te Pouhere set");
-      setText(elements.ordinaryAlternativeTitle, ordinaryTitle);
+      setText(elements.ordinaryAlternativeTitle, [ordinaryTitle, proper].filter(Boolean).join(" · "));
     }
 
     const requiredReading = (window.MANDATORY_READING_RULES || []).find(rule => rule.names.includes(entry.name));
@@ -397,7 +577,6 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
       setText(elements.requiredReadingLabel, requiredReading.label);
       setText(elements.requiredReadingText, requiredReading.instruction);
       setText(elements.requiredReadingExplanation, requiredReading.explanation);
-      elements.requiredReadingSourceLink.href = requiredReading.sourceUrl;
     }
 
     const choiceObservance = result.observance?.authorisedDates?.length > 1
@@ -522,7 +701,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
     if (showUnderlyingSunday) {
       const underlyingTracks = core.readingTracks(underlyingEntry);
       const hasUnderlyingRelated = underlyingTracks.hasDistinctTracks;
-      setText(elements.underlyingSundayTitle, underlyingEntry.name);
+      setText(elements.underlyingSundayTitle, [underlyingEntry.name, properTitle(underlyingEntry, sunday)].filter(Boolean).join(" · "));
       elements.underlyingSundayNote.textContent = entry.name === "The Transfiguration of the Beloved Son" && sunday.getFullYear() === 2023
         ? "The 2023 Lectionary appoints these readings for the Sunday when the Transfiguration is transferred to Monday. They remain part of the Ordinary-Time sequence and are not stored as a 6 August reading set."
         : "This Sunday remains part of the Church-year sequence. Its readings are retained for reference when the higher observance is kept or transferred according to the authorised rule.";
@@ -555,19 +734,26 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
     option.textContent = name;
     elements.monthSelect.appendChild(option);
   });
-  elements.todayButton.addEventListener("click", () => selectDate(today));
+  elements.todayButton.addEventListener("click", () => selectDate(new Date()));
+  $("bible-version").addEventListener("change", event => {
+    state.bibleVersion = event.target.value;
+    $("apocrypha-status").hidden = selectedBibleVersion().apocrypha;
+    renderReading();
+  });
   elements.previousMode.addEventListener("click", () => { state.direction = "previous"; render(); });
   elements.nextMode.addEventListener("click", () => { state.direction = "next"; render(); });
   elements.calendarDateMode.addEventListener("click", () => {
     const option = core.transferOptionForDate(state.selected);
     if (!option) return;
     state.feastPlacement[option.placementKey] = "date";
+    savePrincipalChoices();
     selectDate(option.nominal);
   });
   elements.assignedSundayMode.addEventListener("click", () => {
     const option = core.transferOptionForDate(state.selected);
     if (!option) return;
     state.feastPlacement[option.placementKey] = "sunday";
+    savePrincipalChoices();
     selectDate(option.assigned);
   });
   elements.monthSelect.addEventListener("change", () => {
@@ -590,7 +776,9 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=44";
   elements.saintChoiceUnconfirmed.addEventListener("click", () => setFestivalChoice("unconfirmed"));
   elements.saintChoiceOfficial.addEventListener("click", () => setFestivalChoice("official"));
   elements.saintChoiceAlternative.addEventListener("click", () => setFestivalChoice("alternative"));
-  window.addEventListener("storage", event => { if (event.key === FESTIVAL_CHOICE_STORAGE_KEY) refreshFestivalChoices(); });
+  window.addEventListener("storage", event => {
+    if (event.key === null || [FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY].includes(event.key)) refreshFestivalChoices();
+  });
   window.addEventListener("focus", refreshFestivalChoices);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshFestivalChoices(); });
 
