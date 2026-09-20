@@ -1,9 +1,9 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=72";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=72";
+import { LectionaryCore as core } from "./lectionary-core.js?v=74";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=74";
 
-import {createDayModel} from './modules/day-model.js?v=72';
-import {sundayFeastReadings} from './modules/reading-data.js?v=72';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=72';
+import {createDayModel} from './modules/day-model.js?v=74';
+import {sundayFeastReadings} from './modules/reading-data.js?v=74';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=74';
 
 (function () {
   "use strict";
@@ -14,6 +14,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   function savePrincipalChoices(){saveChoices(PRINCIPAL_CHOICE_STORAGE_KEY,state.feastPlacement);}
 
   const state = {
+    sundaysOnly: new URL(location.href).searchParams.get('view') === 'sundays',
     selected: requestedFasDate() || today,
     month: new Date((requestedFasDate() || today).getFullYear(), (requestedFasDate() || today).getMonth(), 1, 12),
     direction: "next",
@@ -429,6 +430,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       button.className = "calendar-day";
       button.dataset.date = core.formatISO(date);
       button.textContent = date.getDate();
+      button.disabled = state.sundaysOnly && date.getDay() !== 0;
       const observances = core.observancesOn(date, calendarPreferences());
       const easter = core.gregorianEaster(date.getFullYear());
       const vigilName = core.sameDate(date, core.addDays(easter, -1)) ? "Great Vigil of Easter (evening)"
@@ -457,6 +459,8 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   }
 
   function selectDate(date, options = {}) {
+    // An explicit weekday jump from a commemoration or transfer restores all days.
+    if (date.getDay() !== 0) state.sundaysOnly = false;
     state.selected = core.cloneDate(date);
     state.festivalReadingOverride = options.festivalName || null;
     state.month = new Date(date.getFullYear(), date.getMonth(), 1, 12);
@@ -735,13 +739,40 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   }
 
   function render() {
+    if (state.sundaysOnly && state.selected.getDay() !== 0) {
+      state.selected = core.addDays(state.selected, 7 - state.selected.getDay());
+      state.month = new Date(state.selected.getFullYear(), state.selected.getMonth(), 1, 12);
+      state.festivalReadingOverride = null;
+    }
     const preferences=calendarPreferences();
     const day=createDayModel(state.selected,preferences,state.direction,state.festivalReadingOverride);
     renderCalendar(day);
     renderTransferChoice();
     renderReading(day);
     renderFas(state.selected, preferences, selectDate, setReading, createSetActions, day);
+    $('sunday-navigation').hidden = !state.sundaysOnly;
+    for (const [id, active] of [['all-days-mode', !state.sundaysOnly], ['sundays-only-mode', state.sundaysOnly]]) {
+      $(id).classList.toggle('active', active);
+      $(id).setAttribute('aria-pressed', String(active));
+    }
+    document.body.classList.toggle('sundays-only', state.sundaysOnly);
+    const url = new URL(location.href);
+    if (state.sundaysOnly) url.searchParams.set('view', 'sundays');
+    else url.searchParams.delete('view');
+    history.replaceState(null, '', url);
+    $('previous-sunday').disabled = core.addDays(state.selected, -7).getFullYear() < 1600;
+    $('next-sunday').disabled = core.addDays(state.selected, 7).getFullYear() > 4099;
   }
+
+  $('all-days-mode').addEventListener('click', () => { state.sundaysOnly = false; render(); });
+  $('sundays-only-mode').addEventListener('click', () => { state.sundaysOnly = true; state.festivalReadingOverride = null; render(); });
+  function stepSunday(offset) {
+    selectDate(core.addDays(state.selected, offset));
+    // Keep the new readings within reach after navigating from a long reading set.
+    document.querySelector('.reading-panel').scrollIntoView({ block: 'start' });
+  }
+  $('previous-sunday').addEventListener('click', () => stepSunday(-7));
+  $('next-sunday').addEventListener('click', () => stepSunday(7));
 
   const monthNames = Array.from({ length: 12 }, (_, month) => new Intl.DateTimeFormat("en-NZ", { month: "long" }).format(new Date(2024, month, 1, 12)));
   monthNames.forEach((name, month) => {

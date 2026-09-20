@@ -34,6 +34,15 @@ button { color: inherit; }
 
 .app-shell { min-height: 0; }
 
+/* Sunday navigation uses the existing palette; readings and calendar rules are unchanged. */
+.day-navigation { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; padding: 0.65rem clamp(1rem, 4vw, 4.5rem); background: var(--paper); border-bottom: 1px solid #d6dce3; }
+.sunday-navigation { display: flex; gap: 0.5rem; }
+.sunday-navigation[hidden] { display: none; }
+.sunday-navigation button { border: 1px solid #ccd4df; border-radius: 6px; background: white; padding: 0.45rem 0.65rem; cursor: pointer; font-size: 0.85rem; }
+.day-navigation button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sundays-only .calendar-day:disabled { opacity: 0.32; cursor: default; }
+.reading-panel { scroll-margin-top: 7rem; }
+
 .topbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

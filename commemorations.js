@@ -1,5 +1,5 @@
-import {LectionaryCore as core} from './lectionary-core.js?v=72';
-import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=72';
+import {LectionaryCore as core} from './lectionary-core.js?v=74';
+import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=74';
 const el = (tag, text, cls) => { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; };
 let panel, context, bibleNotice, dayNotes;
 function install() {
