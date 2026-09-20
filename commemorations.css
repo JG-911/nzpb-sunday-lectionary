@@ -1,0 +1,16 @@
+/* Commemoration layout additions. Shared Sunday styles and colours retained. */
+#fas-jump { width:100%; max-width:100%; padding:.6rem; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; }
+#fas-panel .track-card { margin:1rem 0; }
+#christmas-proper-buttons { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; }
+.fas-reading-title { padding:1rem; }
+.fas-reading-title h3 { margin:0 0 .4rem; }
+#fas-finder { margin-top:1rem; padding:1rem; }
+#fas-finder summary { cursor:pointer; font-weight:600; }
+#fas-finder select { margin-top:.75rem; }
+#feast-date-finder { margin-top:1rem; padding:1rem; }
+#feast-date-finder summary { cursor:pointer; font-weight:600; }
+#feast-date-jump { width:100%; max-width:100%; padding:.6rem; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; }
+.feast-date-options p { font-size:.85rem; color:var(--muted); }
+.calendar-day.fas-only:not(.sunday):not(.selected)::after { background:#79528d; }
+.calendar-day.fas-only.selected:not(.sunday)::after { background:#dcc5ee; }
+.calendar-legend .legend-fas { background:#79528d; }

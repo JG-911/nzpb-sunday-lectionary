@@ -3,15 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="A Church-year lectionary browser for Sundays, principal feasts and Calendar observances." />
-    <title>NZPB Sunday Lectionary</title>
-    <link rel="stylesheet" href="styles.css?v=59" />
+    <meta name="description" content="A Church-year lectionary browser for Sundays, feasts and For All the Saints commemorations." />
+    <title>NZPB Lectionary</title>
+    <link rel="stylesheet" href="styles.css?v=72" />
+    <link rel="stylesheet" href="commemorations.css?v=72" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <h1>NZPB Sunday Lectionary</h1>
-        <img class="church-logo" src="assets/anglican-church-logo.jpg?v=59" alt="Anglican Church in Aotearoa, New Zealand and Polynesia logo" />
+        <h1>NZPB Lectionary</h1>
+        <img class="church-logo" src="assets/anglican-church-logo.jpg?v=72" alt="Anglican Church in Aotearoa, New Zealand and Polynesia logo" />
         <p class="header-subtitle">A New Zealand Anglican Lectionary</p>
       </header>
 
@@ -104,6 +105,8 @@
             </section>
 
             <section id="te-pouhere-provision" class="te-pouhere-provision" hidden>
+              <details class="easter-vigil" id="te-pouhere-notes">
+                <summary>About Te Pouhere Sunday — precedence information</summary>
               <div class="te-pouhere-status">
                 <span>Designated Sunday and precedence</span>
                 <strong id="te-pouhere-status-text"></strong>
@@ -113,6 +116,7 @@
                   <a id="te-pouhere-calendar-link" href="#" target="_blank" rel="noreferrer">Open NZPB Calendar source ↗</a>
                 </div>
               </div>
+              </details>
               <article class="track-card te-pouhere-card">
                 <header><span class="track-kicker">Specific provision</span><h3>Te Pouhere Sunday</h3></header>
                 <dl>
@@ -249,24 +253,23 @@
       </main>
 
       <footer class="site-footer">
-        <p>© The Anglican Church in Aotearoa New Zealand and Polynesia – used with permission.</p>
+        <p>© The Anglican Church in Aotearoa New Zealand and Polynesia – experimental version - not officially sanctioned</p>
       </footer>
     </div>
 
-    <script src="data/sundays-data.js?v=59"></script>
-    <script src="data/sunday-variations-data.js?v=59"></script>
-    <script src="data/verification-status-data.js?v=59"></script>
-    <script src="data/feasts-data.js?v=59"></script>
-    <script src="data/saints-data.js?v=59"></script>
-    <script src="data/palm-sunday-data.js?v=59"></script>
-    <script src="data/mandatory-reading-data.js?v=59"></script>
-    <script src="data/easter-day-data.js?v=59"></script>
-    <script src="data/te-pouhere-data.js?v=59"></script>
-    <script src="data/liturgical-colours-data.js?v=59"></script>
-    <script src="data/precedence-audit-data.js?v=59"></script>
-    <script src="embed-height.js?v=59"></script>
-    <script src="data/easter-vigil-data.js?v=59"></script>
-    <script src="data/reading-revisions-data.js?v=59"></script>
-    <script type="module" src="app.js?v=59"></script>
+    <script src="data/sundays-data.js?v=72"></script>
+    <script src="data/sunday-variations-data.js?v=72"></script>
+    <script src="data/verification-status-data.js?v=72"></script>
+    <script src="data/feasts-data.js?v=72"></script>
+    <script src="data/saints-data.js?v=72"></script>
+    <script src="data/palm-sunday-data.js?v=72"></script>
+    <script src="data/mandatory-reading-data.js?v=72"></script>
+    <script src="data/easter-day-data.js?v=72"></script>
+    <script src="data/te-pouhere-data.js?v=72"></script>
+    <script src="data/liturgical-colours-data.js?v=72"></script>
+    <script src="embed-height.js?v=72"></script>
+    <script src="data/easter-vigil-data.js?v=72"></script>
+    <script src="data/reading-revisions-data.js?v=72"></script>
+    <script type="module" src="app.js?v=72"></script>
   </body>
 </html>

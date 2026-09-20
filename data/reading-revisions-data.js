@@ -25,6 +25,18 @@
   revise("B-THE-THIRTEENTH-SUNDAY-IN-ORDINARY-TIME", "ot", "Continuous: 2 Samuel 1:1, 17–27 Related: Wisdom 1:13–15; 2:23–24 or Lamentations 3:22–33", "V-06", "Lamentations is an alternative OT reading, beginning at 3:22, following the user's Vanderbilt decision.");
   revise("B-THE-THIRTEENTH-SUNDAY-IN-ORDINARY-TIME", "psalm", "Continuous: Psalm 130 Related: Psalm 30", "V-06", "Remove the former Lamentations Psalm alternative; its earlier NZPB role/range remains in this audit.");
   revise("A-THE-SIXTEENTH-SUNDAY-IN-ORDINARY-TIME", "ot", "Continuous: Genesis 28:10–19a Related: Wisdom 12:13, 16–19 or Isaiah 44:6–8", "V-07", "Restore Isaiah 44:6–8 as the alternative. User confirms this also appears in the 2023 and 2026 NZ annual Lectionaries; treat the omission as an NZPB reading/extraction issue, not an annual Lectionary error.");
+  for (const id of ["A-THE-THIRD-SUNDAY-OF-ADVENT", "B-THE-THIRD-SUNDAY-OF-ADVENT", "B-THE-FOURTH-SUNDAY-OF-ADVENT", "C-THE-FOURTH-SUNDAY-OF-ADVENT"]) {
+    revise(id, "psalm", find(id).psalm.replace("Luke 1:46b–55", "Luke 1:47–55"), "RCL3-01", "Use Luke 1:47–55 from the corrected RCL version 3 source. This supersedes V-03.");
+  }
+  revise("B-THE-THIRTEENTH-SUNDAY-IN-ORDINARY-TIME", "ot", "Continuous: 2 Samuel 1:1, 17–27 Related: Wisdom 1:13–15; 2:23–24", "RCL3-02", "Use Wisdom alone as the Related Old Testament reading. This supersedes the V-06 placement of Lamentations in the OT field.");
+  revise("B-THE-THIRTEENTH-SUNDAY-IN-ORDINARY-TIME", "psalm", "Continuous: Psalm 130 Related: Psalm 30 or Lamentations 3:23–33", "RCL3-02", "Use Psalm 30 or Lamentations 3:23–33 in the Related Psalm position, following the corrected RCL version 3 source. This supersedes V-06.");
+  for (const review of audit.filter(item => item.issue === "V-03" || item.issue === "V-06")) {
+    review.status = `Superseded by ${review.issue === "V-03" ? "RCL3-01" : "RCL3-02"}`;
+  }
+  find("B-THE-EIGHTEENTH-SUNDAY-IN-ORDINARY-TIME").notes += "\nRCL3-03: user confirmed the current 2 Samuel 11:26–12:13a correction remains in force.";
+  find("B-THE-TWENTIETH-SUNDAY-IN-ORDINARY-TIME").notes += "\nRCL3-04: user confirmed the current 1 Kings 2:10–12; 3:3–14 correction remains in force.";
+  audit.push({ issue: "RCL3-03", id: "B-THE-EIGHTEENTH-SUNDAY-IN-ORDINARY-TIME", field: "ot", status: "User confirmed — retain current", current: find("B-THE-EIGHTEENTH-SUNDAY-IN-ORDINARY-TIME").ot, sourceFile: "RCL_version_3_Corrected_Source.docx", note: "Keep 2 Samuel; do not restore the erroneous 1 Samuel form." });
+  audit.push({ issue: "RCL3-04", id: "B-THE-TWENTIETH-SUNDAY-IN-ORDINARY-TIME", field: "ot", status: "User confirmed — retain current", current: find("B-THE-TWENTIETH-SUNDAY-IN-ORDINARY-TIME").ot, sourceFile: "RCL_version_3_Corrected_Source.docx", note: "Keep 1 Kings; do not restore the erroneous 2 Kings form." });
   audit.push({ issue: "V-08", id: "C-THE-SECOND-SUNDAY-IN-LENT", field: "gospel", status: "Retain current — future review", current: find("C-THE-SECOND-SUNDAY-IN-LENT").gospel, vanderbilt: "Luke 13:31–35 or Luke 9:28–36, (37–43a)", note: "User explicitly requested no change. Reconsider the optional extension only in a future approved revision." });
   find("C-THE-SECOND-SUNDAY-IN-LENT").notes += "\nV-08: retain the current Luke 9:28–36 alternative; Vanderbilt's optional 37–43a extension is noted for future review, not adopted.";
 

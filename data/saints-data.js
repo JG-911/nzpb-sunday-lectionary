@@ -84,17 +84,17 @@ window.SAINTS_DATA = [
     subheading: "Saint Matthias the Apostle",
     season: "Other Feasts and Saints’ Days",
     year: "Years A, B, C",
-    ot: "Isaiah 22:15–22 or Acts 1:15–26",
+    ot: "Isaiah 22:15–22 or Acts 1:15–17,20–26",
     psalm: "Psalm 113",
-    nt: "Acts 1:15–26 or Philippians 3:13–21",
+    nt: "Acts 1:15–17,20–26 or Philippians 3:13–21",
     gospel: "John 15:9–17",
-    notes: "Reviewed and corrected 31 August 2026 (JG): use the full Acts 1:15–26 range shown consistently in annual Lectionaries. The Calendar permits 24 February or 14 May; the readings follow the observance when an authorised date or transferred date is selected.",
+    notes: "User correction 20 September 2026: use the NZPB selection Acts 1:15–17,20–26 in both reading positions, superseding the 31 August full-range decision. The Calendar permits 24 February or 14 May; the readings follow the observance when an authorised date or transferred date is selected.",
     sourceTitle: "NZPB — Saint Matthias the Apostle",
     sourceUrl: "https://anglicanprayerbook.nz/546.html",
     secondarySourceUrl: "https://www.anglican.org.nz/content/download/162021/813325/file/2026%20Lectionary%20Final.pdf",
     verification: "Verified — reviewer correction applied",
-    comparisonStatus: "Resolved — annual Lectionary range selected",
-    mismatchDetails: "Acts first-reading range differs; 24 February and 14 May are both authorised Calendar dates."
+    comparisonStatus: "Resolved — user selected NZPB readings",
+    mismatchDetails: "NZPB selection omits Acts 1:18–19; previous annual Lectionary full-range decision superseded by user. Both authorised dates use the same corrected readings."
   },
   {
     id: "ABC-VISITATION",

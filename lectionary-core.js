@@ -608,7 +608,7 @@
   function resolveSelection(selected, mode, placements, festivalOverrideName) {
     const date = cloneDate(selected);
     const observances = observancesOn(date, placements);
-    const selectedFestival = festivalOverrideName && observances.find(item => item.name === festivalOverrideName && item.lookupName);
+    const selectedFestival = festivalOverrideName && observances.find(item => item.name === festivalOverrideName && item.lookupName && !(['official','alternative'].includes(item.choice) && item.authorisedDates?.[item.optionIndex]?.active === false));
     if (selectedFestival) {
       return { displayDate: date, result: classifyObservance(date, selectedFestival), adjusted: false, observances };
     }

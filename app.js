@@ -1,38 +1,21 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=59";
+import { LectionaryCore as core } from "./lectionary-core.js?v=72";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=72";
+
+import {createDayModel} from './modules/day-model.js?v=72';
+import {sundayFeastReadings} from './modules/reading-data.js?v=72';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=72';
 
 (function () {
   "use strict";
 
-  const data = [...(window.SUNDAY_DATA || []), ...(window.FEAST_DATA || []), ...(window.SAINTS_DATA || [])];
+  const data = sundayFeastReadings;
   let today = core.cloneDate(new Date());
-  const FESTIVAL_CHOICE_STORAGE_KEY = "nzpb-lectionary-festival-choices-v1";
-  const PRINCIPAL_CHOICE_STORAGE_KEY = "nzpb-lectionary-principal-choices-v1";
   const BIBLE_GATEWAY_BASE = "https://www.biblegateway.com/passage/";
-
-  function loadFestivalChoices() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(FESTIVAL_CHOICE_STORAGE_KEY) || "{}");
-      return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
-    } catch (_error) {
-      return {};
-    }
-  }
-
-  function loadPrincipalChoices() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(PRINCIPAL_CHOICE_STORAGE_KEY) || "{}");
-      return Object.fromEntries(Object.entries(saved || {}).filter(([key, value]) =>
-        /^(epiphany|presentation|allSaints)-\d{4}$/.test(key) && ["date", "sunday"].includes(value)));
-    } catch (_error) { return {}; }
-  }
-
-  function savePrincipalChoices() {
-    try { localStorage.setItem(PRINCIPAL_CHOICE_STORAGE_KEY, JSON.stringify(state.feastPlacement)); } catch (_error) { /* Device storage may be unavailable. */ }
-  }
+  function savePrincipalChoices(){saveChoices(PRINCIPAL_CHOICE_STORAGE_KEY,state.feastPlacement);}
 
   const state = {
-    selected: today,
-    month: new Date(today.getFullYear(), today.getMonth(), 1, 12),
+    selected: requestedFasDate() || today,
+    month: new Date((requestedFasDate() || today).getFullYear(), (requestedFasDate() || today).getMonth(), 1, 12),
     direction: "next",
     feastPlacement: loadPrincipalChoices(),
     festivalChoices: loadFestivalChoices(),
@@ -46,7 +29,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
 
   function calendarPreferences() { return { ...state.feastPlacement, ...state.festivalChoices }; }
   function saveFestivalChoices() {
-    try { localStorage.setItem(FESTIVAL_CHOICE_STORAGE_KEY, JSON.stringify(state.festivalChoices)); } catch (_error) { /* Browser storage may be unavailable. */ }
+    saveChoices(FESTIVAL_CHOICE_STORAGE_KEY,state.festivalChoices);
   }
 
   function refreshFestivalChoices() {
@@ -245,7 +228,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
           button.setAttribute("aria-pressed", String(active));
           button.addEventListener("click", () => {
             state.optionalChoices[passage.source] = include;
-            renderReading();
+            render();
           });
           choices.appendChild(button);
         });
@@ -402,11 +385,16 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
     ["I", "II", "III"].forEach((roman, index) => {
       const prefix = `Proper ${roman}:`;
       const readings = [entry.ot, entry.psalm, entry.nt, entry.gospel].map(value => String(value || "").split(/\r?\n/).find(line => line.startsWith(prefix))?.slice(prefix.length).trim() || "");
-      const row = document.createElement("div");
-      row.className = "christmas-proper-row";
-      const title = document.createElement("strong");
+      const row = document.createElement("article");
+      row.className = "track-card continuous-card";
+      row.dataset.christmasProper = String(index + 1);
+      const title = document.createElement("h3");
       title.textContent = `Proper ${index + 1}`;
-      row.append(title, createSetActions(readings, `Proper ${index + 1}`));
+      const header = document.createElement("header");header.append(title);row.append(header);
+      const dl=document.createElement("dl");
+      ["First reading","Psalm / Canticle","Second reading","Gospel"].forEach((label,i)=>{const field=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;setReading(dd,readings[i]);field.append(dt,dd);dl.append(field);});
+      header.append(createSetActions(readings, `Proper ${index + 1}`));
+      row.append(dl);
       elements.christmasProperButtons.appendChild(row);
     });
   }
@@ -422,7 +410,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
     relatedCard.hidden = !hasRelatedSeries || selectedMode !== "related";
   }
 
-  function renderCalendar() {
+  function renderCalendar(day) {
     today = core.cloneDate(new Date());
     const monthLabel = new Intl.DateTimeFormat("en-NZ", { month: "long", year: "numeric" }).format(state.month);
     elements.monthTitle.textContent = monthLabel;
@@ -432,13 +420,14 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
     const first = new Date(state.month.getFullYear(), state.month.getMonth(), 1, 12);
     const mondayOffset = (first.getDay() + 6) % 7;
     const start = core.addDays(first, -mondayOffset);
-    const resolved = core.resolveSelection(state.selected, state.direction, calendarPreferences()).displayDate;
+    const resolved = day.selection.displayDate;
 
     for (let index = 0; index < 42; index += 1) {
       const date = core.addDays(start, index);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "calendar-day";
+      button.dataset.date = core.formatISO(date);
       button.textContent = date.getDate();
       const observances = core.observancesOn(date, calendarPreferences());
       const easter = core.gregorianEaster(date.getFullYear());
@@ -514,11 +503,11 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
     elements.assignedSundayMode.classList.toggle("active", placement === "sunday");
   }
 
-  function renderReading() {
-    const selection = core.resolveSelection(state.selected, state.direction, calendarPreferences(), state.festivalReadingOverride);
+  function renderReading(day) {
+    const selection = day.selection;
     const sunday = selection.displayDate;
     const result = selection.result;
-    const entry = core.findEntry(result, data);
+    const entry = day.entry;
     const adjusted = selection.adjusted;
 
     elements.requiredReadingGuidance.hidden = true;
@@ -544,9 +533,10 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
     renderColour(sunday, result);
 
     const notices = [];
+    const dateChoiceOwner = (result.observance?.authorisedDates?.length > 1 ? result.observance : core.observancesOn(state.selected, calendarPreferences()).find(item => item.authorisedDates?.length > 1))?.name;
     if (adjusted) notices.push(`Selected ${core.formatLong(state.selected)}; readings shown for ${core.formatLong(sunday)}.`);
-    if (result.warning) notices.push(result.warning);
-    const secondaryObservances = selection.observances.filter(item => !result.observance || item.name !== result.observance.name);
+    if (result.warning && (!dateChoiceOwner || result.observance?.name !== dateChoiceOwner)) notices.push(result.warning);
+    const secondaryObservances = selection.observances.filter(item => item.name !== dateChoiceOwner && (!result.observance || item.name !== result.observance.name));
     const collisionObservances = selection.observances.filter(item => item.collision || (item.nominalDate && item.observedDate && !core.sameDate(item.nominalDate, item.observedDate)));
     if (!adjusted && secondaryObservances.length) notices.push(secondaryObservances.map(item => `${item.name}: ${item.note}`).join(" "));
     showNotice(notices.join(" "), (result.warning || collisionObservances.length) ? "warning" : "info");
@@ -603,7 +593,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
 
     const choiceObservance = result.observance?.authorisedDates?.length > 1
       ? result.observance
-      : selection.observances.find(item => item.authorisedDates?.length > 1);
+      : core.observancesOn(state.selected, calendarPreferences()).find(item => item.authorisedDates?.length > 1);
     const authorisedDates = choiceObservance?.authorisedDates || [];
     elements.saintDateChoice.hidden = authorisedDates.length < 2;
     elements.saintDateLinks.replaceChildren();
@@ -613,16 +603,17 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
       const choice = choiceObservance.choice || "unconfirmed";
       const choiceKey = choiceObservance.choiceKey;
       state.festivalChoiceContext = { name: choiceName, choiceKey, authorisedDates };
-      elements.saintDateChoiceText.textContent = `${choiceName} has an official Calendar date and an authorised alternative in this Advent-to-Advent liturgical year. Both dates open the same readings; this choice does not replace the Sunday provision.`;
-      elements.saintObservanceStatus.textContent = choice === "alternative"
-        ? (authorisedDates[1].nominal > authorisedDates[0].nominal
-          ? `Alternative selected: the feast was not recorded as observed on ${dateFormatter.format(authorisedDates[0].nominal)}.`
-          : `Alternative selected in place of the later official date, ${dateFormatter.format(authorisedDates[0].nominal)}.`)
-        : choice === "official"
-          ? (core.sameDate(authorisedDates[0].nominal, authorisedDates[0].observed)
-            ? "Official date used: the alternative remains visible for reference only."
-            : `Official-date provision selected: precedence moves it to ${dateFormatter.format(authorisedDates[0].observed)}; the alternative remains visible for reference.`)
-          : "Observance status not yet confirmed. The official date remains active until a choice is recorded.";
+      elements.saintDateChoice.dataset.feastName = choiceName;
+      elements.saintDateChoice.querySelector(':scope > span').textContent = `Date choices — ${choiceName}`;
+      elements.saintDateChoice.setAttribute('aria-label', `Date choices for ${choiceName}`);
+      elements.saintObservanceChoice.setAttribute('aria-label', `Choose an observance date for ${choiceName}`);
+      const mainIsDifferent = result.name !== choiceName;
+      elements.saintDateChoiceText.textContent = `These controls apply only to ${choiceName}. ${mainIsDifferent ? `The main service shown here is ${result.name}; these choices do not change its precedence or the dates of other commemorations. ` : ''}The official Calendar date is fixed; its observance may move under the precedence rules. The authorised alternative is a separate date choice within this Advent-to-Advent year.`;
+      const chosenDate = authorisedDates[choice === 'alternative' ? 1 : 0];
+      elements.saintObservanceStatus.textContent = choice === 'unconfirmed'
+        ? `${choiceName}: not confirmed. The official-date provision is currently appointed for ${dateFormatter.format(chosenDate.observed)}.`
+        : `${choiceName}: ${choice === 'alternative' ? 'authorised alternative' : 'official-date provision'} selected for ${dateFormatter.format(chosenDate.observed)}. Selection does not record that the service has taken place.`;
+      elements.saintChoiceOfficial.textContent = core.sameDate(authorisedDates[0].nominal, authorisedDates[0].observed) ? 'Use official date' : 'Use official-date provision (transferred)';
       [
         [elements.saintChoiceUnconfirmed, "unconfirmed"],
         [elements.saintChoiceOfficial, "official"],
@@ -638,18 +629,18 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
         button.className = "saint-date-link";
         const role = document.createElement("span");
         role.className = "saint-date-role";
-        role.textContent = item.role;
+        role.textContent = `${choiceName} — ${item.role}`;
         const dateValue = document.createElement("strong");
         const dateStatus = document.createElement("span");
         dateStatus.className = "saint-date-status";
-        const collisionLabel = item.collision?.blockedBy ? `; ${item.collision.blockedBy} has precedence` : "";
+        const collisionLabel = item.collision?.blockedBy ? ` ${item.collision.blockedBy} takes precedence on the Calendar date.` : "";
         const chainLabel = item.transferChain?.length > 1 ? `; also skips ${item.transferChain.slice(1).map(step => step.name).join(", ")}` : "";
         dateValue.textContent = core.sameDate(item.nominal, item.observed)
           ? dateFormatter.format(item.nominal)
-          : `${dateFormatter.format(item.nominal)}${collisionLabel} — observed ${dateFormatter.format(item.observed)}${chainLabel}`;
+          : `${dateFormatter.format(item.nominal)} — ${choiceName} transferred to ${dateFormatter.format(item.observed)}.${collisionLabel}${chainLabel}`;
         dateStatus.textContent = item.active
-          ? (choice === "unconfirmed" ? "Active by default — confirmation pending" : "Selected observance date")
-          : (choice === "official" ? "Already observed on the official date" : "Not selected — available for reference");
+          ? (choice === "unconfirmed" ? `${choiceName}: default provision — confirmation pending` : `${choiceName}: selected observance date`)
+          : `${choiceName}: not selected — reminder only`;
         button.append(role, dateValue, dateStatus);
         if (item.active) button.classList.add("appointed");
         if (core.sameDate(state.selected, item.observed)) button.classList.add("active");
@@ -676,7 +667,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
       ? (window.PALM_SUNDAY_DATA || []).find(item => item.year === entry.year)
       : null;
     elements.palmLiturgy.hidden = !palmData;
-    elements.tracks.hidden = Boolean(palmData);
+    elements.tracks.hidden = Boolean(palmData) || entry.name === "Christmas Day";
     if (palmData) {
       setText(elements.palmInstructionText, palmData.instruction);
       setReading(elements.palmsGospel, palmData.palmsGospel);
@@ -744,9 +735,12 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
   }
 
   function render() {
-    renderCalendar();
+    const preferences=calendarPreferences();
+    const day=createDayModel(state.selected,preferences,state.direction,state.festivalReadingOverride);
+    renderCalendar(day);
     renderTransferChoice();
-    renderReading();
+    renderReading(day);
+    renderFas(state.selected, preferences, selectDate, setReading, createSetActions, day);
   }
 
   const monthNames = Array.from({ length: 12 }, (_, month) => new Intl.DateTimeFormat("en-NZ", { month: "long" }).format(new Date(2024, month, 1, 12)));
@@ -760,7 +754,7 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
   $("bible-version").addEventListener("change", event => {
     state.bibleVersion = event.target.value;
     $("apocrypha-status").hidden = selectedBibleVersion().apocrypha;
-    renderReading();
+    render();
   });
   elements.previousMode.addEventListener("click", () => { state.direction = "previous"; render(); });
   elements.nextMode.addEventListener("click", () => { state.direction = "next"; render(); });
@@ -780,21 +774,21 @@ import { LectionaryCore as core } from "./lectionary-core.js?v=59";
   });
   elements.monthSelect.addEventListener("change", () => {
     state.month = new Date(state.month.getFullYear(), Number(elements.monthSelect.value), 1, 12);
-    renderCalendar();
+    render();
   });
   function applySelectedYear() {
     const year = Number(elements.yearSelect.value);
     if (Number.isInteger(year) && year >= 1600 && year <= 4099) state.month = new Date(year, state.month.getMonth(), 1, 12);
-    renderCalendar();
+    render();
   }
   elements.yearSelect.addEventListener("change", applySelectedYear);
   elements.yearSelect.addEventListener("keydown", event => { if (event.key === "Enter") applySelectedYear(); });
-  elements.previousMonth.addEventListener("click", () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1, 12); renderCalendar(); });
-  elements.nextMonth.addEventListener("click", () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1, 12); renderCalendar(); });
-  elements.continuousTrackMode.addEventListener("click", () => { state.trackMode = "continuous"; renderReading(); });
-  elements.relatedTrackMode.addEventListener("click", () => { state.trackMode = "related"; renderReading(); });
-  elements.underlyingContinuousTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "continuous"; renderReading(); });
-  elements.underlyingRelatedTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "related"; renderReading(); });
+  elements.previousMonth.addEventListener("click", () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1, 12); render(); });
+  elements.nextMonth.addEventListener("click", () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1, 12); render(); });
+  elements.continuousTrackMode.addEventListener("click", () => { state.trackMode = "continuous"; render(); });
+  elements.relatedTrackMode.addEventListener("click", () => { state.trackMode = "related"; render(); });
+  elements.underlyingContinuousTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "continuous"; render(); });
+  elements.underlyingRelatedTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "related"; render(); });
   elements.saintChoiceUnconfirmed.addEventListener("click", () => setFestivalChoice("unconfirmed"));
   elements.saintChoiceOfficial.addEventListener("click", () => setFestivalChoice("official"));
   elements.saintChoiceAlternative.addEventListener("click", () => setFestivalChoice("alternative"));
