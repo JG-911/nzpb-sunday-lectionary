@@ -1,7 +1,7 @@
-import {LectionaryCore as core} from './lectionary-core.js?v=74';
-import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=74';
+import {LectionaryCore as core} from './lectionary-core.js?v=82';
+import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=82';
 const el = (tag, text, cls) => { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; };
-let panel, context, bibleNotice, dayNotes;
+let panel, context, bibleNotice, dayNotes, dateOptions;
 function install() {
   if(panel)return;
   bibleNotice=document.querySelector('.reading-link-notice');
@@ -11,12 +11,16 @@ function install() {
   for(const node of [...parent.children])context.append(node);
   panel=el('section');panel.id='fas-panel';parent.append(panel,context);
   dayNotes=el('details',null,'easter-vigil');dayNotes.id='day-notes';
-  dayNotes.append(el('summary','About this day — information available'),document.getElementById('notice'),document.getElementById('saint-date-choice'));
+  dayNotes.append(el('summary','About this day — information available'),document.getElementById('notice'));
+  // Keep date preferences reachable independently of the archived public notes.
+  dateOptions=el('details',null,'calendar-card');dateOptions.id='date-options';
+  dateOptions.append(el('summary','Date options'),document.getElementById('saint-date-choice'));
+  document.querySelector('.date-panel').append(dateOptions);
   const legend=document.querySelector('.calendar-legend');legend.append(el('span',null,'legend-fas'),' Commemoration');
 }
 function addField(dl,label,value,linkReading,linkReference=value) {
   if(!value)return;
-  const div=el('div'),dd=el('dd');if(linkReading){linkReading(dd,linkReference);if(linkReference!==value&&dd.querySelector('.reading-text'))dd.querySelector('.reading-text').textContent=value;}else dd.textContent=value;div.append(el('dt',label),dd);dl.append(div);
+  const div=el('div'),dd=el('dd');if(linkReading){linkReading(dd,linkReference);if(linkReference!==value){if(dd.querySelector('.reading-text'))dd.querySelector('.reading-text').textContent=value;if(dd.querySelector('.primary-reading-link'))dd.querySelector('.primary-reading-link').textContent=value;}}else dd.textContent=value;div.append(el('dt',label),dd);dl.append(div);
 }
 // One order for weekday headings and every Sunday/multiple-commemoration card.
 function appendCommemorationHeading(container, date, name, role, level) {
@@ -60,6 +64,7 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
   dayNotes.querySelectorAll('[data-day-note]').forEach(node=>node.remove());
   bibleNotice.remove();
   document.getElementById('fas-set-aside')?.remove();
+  document.getElementById('fas-set-aside-notice')?.remove();
   document.getElementById('selected-date-notes')?.remove();
   panel.replaceChildren();
   const sets=day.sets;
@@ -101,7 +106,7 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
     }
     panel.parentElement.prepend(notices);
   }
-  const dateControls=dayNotes.querySelector('#saint-date-choice');
+  const dateControls=document.getElementById('saint-date-choice');
   const mainNotice=dayNotes.querySelector('#notice');
   for(const o of warnings){
     if(!dateControls.hidden&&dateControls.dataset.feastName===o.name)continue;
@@ -117,7 +122,12 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
       const destination=appointment ? ` — ${appointment.informational&&appointment.active===false?'alternative provision on':'transferred to'} ${core.formatLong(appointment.observedDate)}` : '';
       return [name,name+destination];
     })).values()];
-    const aside=el('details',null,'easter-vigil');aside.id='fas-set-aside';aside.append(el('summary','Set aside — '+labels.join('; ')));panel.parentElement.insertBefore(aside,context);cards=aside;
+    const aside=el('details',null,'easter-vigil');aside.id='fas-set-aside';aside.append(el('summary','Set aside — '+labels.join('; ')));panel.parentElement.append(aside);cards=aside;
+    const notice=el('div',null,'set-aside-notice');notice.id='fas-set-aside-notice';
+    for(const label of labels)notice.append(el('p','Set aside: '+label));
+    const jump=el('button','View set-aside readings');jump.type='button';
+    jump.addEventListener('click',()=>{aside.open=true;aside.querySelector('summary').focus({preventScroll:true});aside.scrollIntoView({block:'start'});});
+    notice.append(jump);panel.parentElement.insertBefore(notice,context);
   }
   const seen=new Set();
   for(const {row} of visible){
@@ -149,11 +159,11 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
     cards.append(card);
   }
   for(const button of document.querySelectorAll('[data-date]')){
-    const d=core.parseISO(button.dataset.date),sets=matches(d,preferences);
+    const d=core.parseISO(button.dataset.date),sets=matches(d,preferences,day.calendarObservances?.get(button.dataset.date));
     const fasOnly=sets.length>0&&d.getDay()!==0&&!button.classList.contains('observance')&&!sets.some(s=>s.row.sharedObservance);
     button.classList.toggle('fas-only',fasOnly);
     button.classList.toggle('resolved',core.sameDate(d,date));
-    if(sets.length){button.classList.add('observance');const names=sets.map(s=>s.row.title).join('; ');button.title+=(button.title?' · ':'')+'FAS: '+names;button.setAttribute('aria-label',button.getAttribute('aria-label')+'. FAS: '+names);}
+    if(sets.length){button.classList.add('observance');const existing=JSON.parse(button.dataset.observanceNames||'[]');const names=[...new Set(sets.filter(s=>!existing.includes(s.row.sharedObservance||s.row.title)).map(s=>s.row.title))].join('; ');if(names){button.title+=(button.title?' · ':'')+'FAS: '+names;button.setAttribute('aria-label',button.getAttribute('aria-label')+'. FAS: '+names);}}
   }
   document.getElementById('date-adjustment').hidden=true;
   const selectedNotes=document.getElementById('selected-date-notes');
@@ -162,7 +172,10 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
   dayNotes.querySelector('summary').textContent=hasChoices
     ? `About this day — date choices for ${dateControls.dataset.feastName}`
     : selectedNotes ? 'About this day — a feast is selected for another date' : 'About this day — information available';
-  dayNotes.hidden=!(hasChoices||!mainNotice.hidden||dayNotes.querySelector('[data-day-note]'));
+  // Temporarily withheld from the public interface; content retained for redesign.
+  dayNotes.hidden=true;
+  dateOptions.hidden=!hasChoices;
+  dateOptions.querySelector('summary').textContent=hasChoices ? `Date options — ${dateControls.dataset.feastName}` : 'Date options';
   const headingHost=contextOnly?context:panel;
   headingHost.querySelector(':scope > .reading-heading').after(dayNotes);
   const url=new URL(location.href);url.searchParams.delete('fas-date');url.searchParams.set('date',core.formatISO(date));history.replaceState(null,'',url);

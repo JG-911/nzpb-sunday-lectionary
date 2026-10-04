@@ -1,9 +1,10 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=74";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=74";
+import { LectionaryCore as core } from "./lectionary-core.js?v=82";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=82";
+import { enhanceInterface } from './modules/interface.js?v=82';
 
-import {createDayModel} from './modules/day-model.js?v=74';
-import {sundayFeastReadings} from './modules/reading-data.js?v=74';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=74';
+import {createDayModel} from './modules/day-model.js?v=82';
+import {sundayFeastReadings} from './modules/reading-data.js?v=82';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=82';
 
 (function () {
   "use strict";
@@ -58,7 +59,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     colourBadge: $("colour-badge"), colourSwatch: $("colour-swatch"), colourLabel: $("colour-label"),
     saintDateChoice: $("saint-date-choice"), saintDateChoiceText: $("saint-date-choice-text"), saintDateLinks: $("saint-date-links"),
     saintObservanceStatus: $("saint-observance-status"), saintObservanceChoice: $("saint-observance-choice"),
-    saintChoiceUnconfirmed: $("saint-choice-unconfirmed"), saintChoiceOfficial: $("saint-choice-official"), saintChoiceAlternative: $("saint-choice-alternative"),
+    saintChoiceOfficial: $("saint-choice-official"), saintChoiceAlternative: $("saint-choice-alternative"),
     christmasProperLinks: $("christmas-proper-links"), christmasProperButtons: $("christmas-proper-buttons"),
     requiredReadingGuidance: $("required-reading-guidance"), requiredReadingLabel: $("required-reading-label"), requiredReadingText: $("required-reading-text"), requiredReadingExplanation: $("required-reading-explanation"),
     easterLateService: $("easter-late-service"), easterLateKicker: $("easter-late-kicker"), easterLateTitle: $("easter-late-title"),
@@ -247,6 +248,12 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       link.target = "_blank";
       link.rel = "noreferrer";
       link.textContent = passage.normalized;
+      // A single reference can be its own link without losing source notation.
+      if (passages.length === 1) {
+        link.textContent = value;
+        readingText.hidden = true;
+        link.classList.add('primary-reading-link');
+      }
       links.appendChild(link);
       if (choices) links.appendChild(choices);
       if (unavailableApocrypha([passage])) {
@@ -412,6 +419,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   }
 
   function renderCalendar(day) {
+    day.calendarObservances = new Map();
     today = core.cloneDate(new Date());
     const monthLabel = new Intl.DateTimeFormat("en-NZ", { month: "long", year: "numeric" }).format(state.month);
     elements.monthTitle.textContent = monthLabel;
@@ -432,13 +440,16 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       button.textContent = date.getDate();
       button.disabled = state.sundaysOnly && date.getDay() !== 0;
       const observances = core.observancesOn(date, calendarPreferences());
+      day.calendarObservances.set(core.formatISO(date), observances);
       const easter = core.gregorianEaster(date.getFullYear());
       const vigilName = core.sameDate(date, core.addDays(easter, -1)) ? "Great Vigil of Easter (evening)"
         : core.sameDate(date, easter) ? "Great Vigil of Easter (early morning)" : "";
-      const observanceNames = [...observances.map(item => item.name), vigilName].filter(Boolean).join("; ");
+      const observanceNames = [...new Set([...observances.map(item => item.name), vigilName].filter(Boolean))].join("; ");
       const collisionObservances = observances.filter(item => item.collision || (item.nominalDate && item.observedDate && !core.sameDate(item.nominalDate, item.observedDate)));
       const collisionText = collisionObservances.map(item => item.note || `${item.name} is transferred`).join(" ");
-      button.setAttribute("aria-label", `${core.formatLong(date)}${observanceNames ? `. ${observanceNames}` : ""}${collisionText ? `. Transfer alert: ${collisionText}` : ""}`);
+      button.setAttribute("aria-label", `${core.formatLong(date)}${observanceNames ? `. ${observanceNames}` : ""}${collisionText ? '. Transfer information available' : ''}`);
+      button.dataset.observanceNames = JSON.stringify([...new Set(observances.map(item => item.name))]);
+      if (collisionText) button.setAttribute('aria-description', collisionText);
       if (observanceNames || collisionText) button.title = [observanceNames, collisionText].filter(Boolean).join(" — ");
       if (date.getMonth() !== state.month.getMonth()) button.classList.add("outside");
       if (date.getDay() === 0) button.classList.add("sunday");
@@ -604,7 +615,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     if (authorisedDates.length > 1) {
       const dateFormatter = new Intl.DateTimeFormat("en-NZ", { day: "numeric", month: "long", year: "numeric" });
       const choiceName = choiceObservance.lookupName || choiceObservance.name;
-      const choice = choiceObservance.choice || "unconfirmed";
+      const choice = choiceObservance.choice === 'alternative' ? 'alternative' : 'official';
       const choiceKey = choiceObservance.choiceKey;
       state.festivalChoiceContext = { name: choiceName, choiceKey, authorisedDates };
       elements.saintDateChoice.dataset.feastName = choiceName;
@@ -612,14 +623,11 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       elements.saintDateChoice.setAttribute('aria-label', `Date choices for ${choiceName}`);
       elements.saintObservanceChoice.setAttribute('aria-label', `Choose an observance date for ${choiceName}`);
       const mainIsDifferent = result.name !== choiceName;
-      elements.saintDateChoiceText.textContent = `These controls apply only to ${choiceName}. ${mainIsDifferent ? `The main service shown here is ${result.name}; these choices do not change its precedence or the dates of other commemorations. ` : ''}The official Calendar date is fixed; its observance may move under the precedence rules. The authorised alternative is a separate date choice within this Advent-to-Advent year.`;
+      elements.saintDateChoiceText.textContent = mainIsDifferent ? `For ${choiceName}. ${result.name} remains the main service here.` : '';
       const chosenDate = authorisedDates[choice === 'alternative' ? 1 : 0];
-      elements.saintObservanceStatus.textContent = choice === 'unconfirmed'
-        ? `${choiceName}: not confirmed. The official-date provision is currently appointed for ${dateFormatter.format(chosenDate.observed)}.`
-        : `${choiceName}: ${choice === 'alternative' ? 'authorised alternative' : 'official-date provision'} selected for ${dateFormatter.format(chosenDate.observed)}. Selection does not record that the service has taken place.`;
-      elements.saintChoiceOfficial.textContent = core.sameDate(authorisedDates[0].nominal, authorisedDates[0].observed) ? 'Use official date' : 'Use official-date provision (transferred)';
+      elements.saintObservanceStatus.textContent = `${choice === 'alternative' ? 'Alternate' : 'Official'} date selected: ${dateFormatter.format(chosenDate.observed)}.`;
+      elements.saintChoiceOfficial.textContent = 'Official date';
       [
-        [elements.saintChoiceUnconfirmed, "unconfirmed"],
         [elements.saintChoiceOfficial, "official"],
         [elements.saintChoiceAlternative, "alternative"]
       ].forEach(([button, value]) => {
@@ -627,13 +635,18 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
         button.classList.toggle("active", selected);
         button.setAttribute("aria-pressed", String(selected));
       });
-      authorisedDates.forEach(item => {
+      authorisedDates.forEach((original, optionIndex) => {
+        // Preview each option under its own selection, including collision chains.
+        // Inactive options otherwise have no calculated transfer in the schedule.
+        const previewPreferences = {...calendarPreferences(), [choiceKey]: optionIndex ? 'alternative' : 'official'};
+        const preview = core.observancesOn(original.nominal, previewPreferences).find(o => o.choiceKey === choiceKey)?.authorisedDates?.[optionIndex];
+        const item = {...original, ...(preview || {}), active: optionIndex === (choice === 'alternative' ? 1 : 0)};
         const button = document.createElement("button");
         button.type = "button";
         button.className = "saint-date-link";
         const role = document.createElement("span");
         role.className = "saint-date-role";
-        role.textContent = `${choiceName} — ${item.role}`;
+        role.textContent = optionIndex ? 'Alternate date' : 'Official date';
         const dateValue = document.createElement("strong");
         const dateStatus = document.createElement("span");
         dateStatus.className = "saint-date-status";
@@ -641,10 +654,10 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
         const chainLabel = item.transferChain?.length > 1 ? `; also skips ${item.transferChain.slice(1).map(step => step.name).join(", ")}` : "";
         dateValue.textContent = core.sameDate(item.nominal, item.observed)
           ? dateFormatter.format(item.nominal)
-          : `${dateFormatter.format(item.nominal)} — ${choiceName} transferred to ${dateFormatter.format(item.observed)}.${collisionLabel}${chainLabel}`;
+          : `${dateFormatter.format(item.nominal)} — set aside here; transferred to ${dateFormatter.format(item.observed)}.${collisionLabel}${chainLabel}`;
         dateStatus.textContent = item.active
-          ? (choice === "unconfirmed" ? `${choiceName}: default provision — confirmation pending` : `${choiceName}: selected observance date`)
-          : `${choiceName}: not selected — reminder only`;
+          ? 'Selected — view readings'
+          : 'Not selected — view this date';
         button.append(role, dateValue, dateStatus);
         if (item.active) button.classList.add("appointed");
         if (core.sameDate(state.selected, item.observed)) button.classList.add("active");
@@ -750,6 +763,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     renderTransferChoice();
     renderReading(day);
     renderFas(state.selected, preferences, selectDate, setReading, createSetActions, day);
+    enhanceInterface(core.formatLong(state.selected));
     $('sunday-navigation').hidden = !state.sundaysOnly;
     for (const [id, active] of [['all-days-mode', !state.sundaysOnly], ['sundays-only-mode', state.sundaysOnly]]) {
       $(id).classList.toggle('active', active);
@@ -820,7 +834,6 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   elements.relatedTrackMode.addEventListener("click", () => { state.trackMode = "related"; render(); });
   elements.underlyingContinuousTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "continuous"; render(); });
   elements.underlyingRelatedTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "related"; render(); });
-  elements.saintChoiceUnconfirmed.addEventListener("click", () => setFestivalChoice("unconfirmed"));
   elements.saintChoiceOfficial.addEventListener("click", () => setFestivalChoice("official"));
   elements.saintChoiceAlternative.addEventListener("click", () => setFestivalChoice("alternative"));
   window.addEventListener("storage", event => {

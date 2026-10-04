@@ -136,7 +136,7 @@
     })).map(item => {
       const liturgicalStartYear = liturgicalStartYearForDate(item.nominal);
       const choiceKey = festivalChoiceKey(item.name, liturgicalStartYear);
-      const choice = placements?.[choiceKey] || "unconfirmed";
+      const choice = placements?.[choiceKey] === "alternative" ? "alternative" : "official";
       const active = item.alternateDates.length === 0 || (choice === "alternative" ? item.optionIndex > 0 : item.optionIndex === 0);
       return { ...item, liturgicalStartYear, choiceKey, choice, active };
     })).sort((a, b) => a.nominal - b.nominal || a.name.localeCompare(b.name));
@@ -404,6 +404,10 @@
       note: `All Souls’ Day does not displace this Sunday. Its provision is shown on ${formatLong(allSoulsObserved)}; the annual Lectionary permits Monday or the next suitable weekday.`
     }));
 
+    // All festivals in this lookup share the same year/preferences. Calculate
+    // each annual schedule once, not once for every festival on every grid day.
+    // The cache is local to this call, so changed choices cannot become stale.
+    const schedules = new Map();
     fixedFestivals.forEach(festival => {
       const liturgicalStartYear = liturgicalStartYearForDate(date);
       const liturgicalStart = adventOne(liturgicalStartYear);
@@ -413,9 +417,8 @@
       };
       const calendarOptions = [[festival.month, festival.day], ...festival.alternateDates];
       const choiceKey = festivalChoiceKey(festival.name, liturgicalStartYear);
-      const choice = placements?.[choiceKey] || "unconfirmed";
+      const choice = placements?.[choiceKey] === "alternative" ? "alternative" : "official";
       const activeOptionIndex = choice === "alternative" ? 1 : 0;
-      const schedules = new Map();
       const authorisedDates = calendarOptions.map(([month, day], index) => {
         const nominal = dateInLiturgicalYear(month, day);
         const scheduleYear = nominal.getFullYear();
