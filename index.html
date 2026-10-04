@@ -4,20 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A Church-year lectionary browser for Sundays, feasts and For All the Saints commemorations." />
-    <title>NZPB Lectionary</title>
-    <link rel="stylesheet" href="styles.css?v=82" />
-    <link rel="stylesheet" href="commemorations.css?v=82" />
+    <title>Lectionary Readings</title>
+    <link rel="stylesheet" href="styles.css?v=83.2.3" />
+    <link rel="stylesheet" href="commemorations.css?v=83.2.3" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <h1>NZPB Lectionary</h1>
-        <img class="church-logo" src="assets/anglican-church-logo.jpg?v=82" alt="Anglican Church in Aotearoa, New Zealand and Polynesia logo" />
-        <p class="header-subtitle">A New Zealand Anglican Lectionary</p>
+        <h1>Lectionary Readings</h1>
       </header>
 
       <nav class="day-navigation" aria-label="Reading day navigation">
-        <button id="jump-readings" type="button">Jump to readings</button>
+        <label class="compact-date-picker" for="selected-date">Date <input id="selected-date" type="date" min="1600-01-01" max="4099-12-31" required /></label>
+        <button id="today-button" type="button">Today</button>
         <div class="segmented-control" aria-label="Days to show">
           <button id="all-days-mode" type="button" aria-pressed="true">All days</button>
           <button id="sundays-only-mode" type="button" aria-pressed="false">Sundays only</button>
@@ -43,7 +42,7 @@
               <button id="next-month" class="icon-button" type="button" aria-label="Next month">›</button>
             </div>
             <div class="weekday-row" aria-hidden="true">
-              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
             </div>
             <div id="calendar-grid" class="calendar-grid"></div>
             <div class="calendar-legend"><span class="legend-principal"></span> Sunday or principal day <span class="legend-festival"></span> Listed festival <span class="legend-collision">!</span> Transfer or collision</div>
@@ -61,7 +60,6 @@
                 <button id="assigned-sunday-mode" type="button">Assigned Sunday</button>
               </div>
             </div>
-            <button id="today-button" class="calendar-today-button" type="button">Today</button>
           </details>
 
         </aside>
@@ -264,23 +262,35 @@
       </main>
 
       <footer class="site-footer">
-        <p>© The Anglican Church in Aotearoa New Zealand and Polynesia – experimental version - not officially sanctioned</p>
+        <details class="planned-services" hidden>
+          <summary>Coming soon: more readings and collects</summary>
+          <ul>
+            <li>Daily Eucharistic Lectionary (DEL) — Coming soon</li>
+            <li>Morning Prayer (MP) — Coming soon</li>
+            <li>Evening Prayer (EP), including First Evensong — Coming soon</li>
+            <li>Sunday and For All the Saints collects — Coming soon</li>
+          </ul>
+          <p>For All the Saints readings are already included in All days.</p>
+        </details>
+        <p>Data © The Anglican Church in Aotearoa New Zealand and Polynesia</p>
+        <p>Independent experimental project — not officially sanctioned.</p>
+        <p class="release-version">Version 83.2.3</p>
       </footer>
     </div>
 
-    <script src="data/sundays-data.js?v=82"></script>
-    <script src="data/sunday-variations-data.js?v=82"></script>
-    <script src="data/verification-status-data.js?v=82"></script>
-    <script src="data/feasts-data.js?v=82"></script>
-    <script src="data/saints-data.js?v=82"></script>
-    <script src="data/palm-sunday-data.js?v=82"></script>
-    <script src="data/mandatory-reading-data.js?v=82"></script>
-    <script src="data/easter-day-data.js?v=82"></script>
-    <script src="data/te-pouhere-data.js?v=82"></script>
-    <script src="data/liturgical-colours-data.js?v=82"></script>
-    <script src="embed-height.js?v=82"></script>
-    <script src="data/easter-vigil-data.js?v=82"></script>
-    <script src="data/reading-revisions-data.js?v=82"></script>
-    <script type="module" src="app.js?v=82"></script>
+    <script src="data/sundays-data.js?v=83.2.3"></script>
+    <script src="data/sunday-variations-data.js?v=83.2.3"></script>
+    <script src="data/verification-status-data.js?v=83.2.3"></script>
+    <script src="data/feasts-data.js?v=83.2.3"></script>
+    <script src="data/saints-data.js?v=83.2.3"></script>
+    <script src="data/palm-sunday-data.js?v=83.2.3"></script>
+    <script src="data/mandatory-reading-data.js?v=83.2.3"></script>
+    <script src="data/easter-day-data.js?v=83.2.3"></script>
+    <script src="data/te-pouhere-data.js?v=83.2.3"></script>
+    <script src="data/liturgical-colours-data.js?v=83.2.3"></script>
+    <script src="embed-height.js?v=83.2.3"></script>
+    <script src="data/easter-vigil-data.js?v=83.2.3"></script>
+    <script src="data/reading-revisions-data.js?v=83.2.3"></script>
+    <script type="module" src="app.js?v=83.2.3"></script>
   </body>
 </html>

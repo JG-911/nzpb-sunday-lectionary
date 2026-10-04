@@ -1,5 +1,5 @@
 {
-  "release": "82",
+  "release": "83.2.3",
   "rows": [
     {
       "id": "FAS-001",
@@ -686,6 +686,7 @@
       "subtitle": "Martyr, Patron Saint of England",
       "set": "",
       "reading1": "Bel and the Dragon 23-28",
+      "reading1LinkReference": "Bel and the Dragon 1:23-28",
       "reading2": "Revelation 19:11-16",
       "gospel": "Luke 10:17-20",
       "ps": "Psalm 17:6-16 or 121",

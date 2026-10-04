@@ -1,6 +1,6 @@
-import {LectionaryCore as core} from '../lectionary-core.js?v=82';
+import {LectionaryCore as core} from '../lectionary-core.js?v=83.2.3';
 export const sundayFeastReadings=[...(window.SUNDAY_DATA||[]),...(window.FEAST_DATA||[]),...(window.SAINTS_DATA||[])];
-const response=await fetch(new URL('../data/fas-readings.json?v=82',import.meta.url));
+const response=await fetch(new URL('../data/fas-readings.json?v=83.2.3',import.meta.url));
 if(!response.ok)throw new Error('FAS data could not be loaded');
 export const fasRows=(await response.json()).rows.filter(row=>!row.sourceOnly);
 const byDate=new Map();

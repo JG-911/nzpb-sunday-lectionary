@@ -145,6 +145,7 @@
   function sundaySeason(date) {
     const year = date.getFullYear();
     const easter = gregorianEaster(year);
+    if(date>=atNoon(year,11,25)||date<atNoon(year,0,6))return "Christmas";
     if (date >= adventOne(year) && date < atNoon(year, 11, 25)) return "Advent";
     if (date >= addDays(easter, -46) && date < easter) return "Lent";
     if (date >= easter && date <= addDays(easter, 49)) return "Eastertide";
@@ -184,8 +185,8 @@
       return {
         kind: "sunday",
         blockedBy: `${season} Sunday`,
-        explanation: season === "Ordinary Time"
-          ? "The interface follows the permitted transfer from this Ordinary Sunday to the next suitable weekday."
+        explanation: season === "Ordinary Time" || season === "Christmas"
+          ? `The interface follows the permitted transfer from this ${season==='Christmas'?'Christmas-season':'Ordinary'} Sunday to the next suitable weekday.`
           : `A Festival is not celebrated on a Sunday in ${season}.`,
         firstCandidate: addDays(nominal, 1)
       };
@@ -471,12 +472,12 @@
           ...sharedOptions,
           note: [choiceText, choiceNote, sameDate(nominalDate, observedDate)
             ? (date.getDay() === 0 ? "A festival falling on an ordinary Sunday may be kept that day or transferred by local choice." : "Festival listed on this authorised Calendar date.")
-            : `Transferred from ${formatLong(nominalDate)}. ${collisionText}${festivalMayBeKeptOnSunday(nominalDate, placements) ? " The Calendar also permits it to be kept on that Ordinary Sunday by local choice." : ""}`].filter(Boolean).join(" ")
+            : `Transferred from ${formatLong(nominalDate)}. ${collisionText}${festivalMayBeKeptOnSunday(nominalDate, placements) ? ` The Calendar also permits it to be kept on that ${sundaySeason(nominalDate)==='Christmas'?'Christmas-season':'Ordinary'} Sunday by local choice.` : ""}`].filter(Boolean).join(" ")
         }));
         if (active && !sameDate(nominalDate, observedDate) && sameDate(date, nominalDate)) matches.push(observance(festival.name, "Transferred festival", {
           ...sharedOptions,
           informational: true,
-          note: [choiceText, choiceNote, collisionText, festivalMayBeKeptOnSunday(nominalDate, placements) ? "The Calendar also permits it to be kept on that Ordinary Sunday by local choice." : ""].filter(Boolean).join(" ")
+          note: [choiceText, choiceNote, collisionText, festivalMayBeKeptOnSunday(nominalDate, placements) ? `The Calendar also permits it to be kept on that ${sundaySeason(nominalDate)==='Christmas'?'Christmas-season':'Ordinary'} Sunday by local choice.` : ""].filter(Boolean).join(" ")
         }));
         if (!active && sameDate(date, nominalDate)) matches.push(observance(festival.name, "Available observance", {
           ...sharedOptions,

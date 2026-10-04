@@ -1,5 +1,6 @@
-import {LectionaryCore as core} from './lectionary-core.js?v=82';
-import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=82';
+import {LectionaryCore as core} from './lectionary-core.js?v=83.2.3';
+import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.2.3';
+import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=83.2.3';
 const el = (tag, text, cls) => { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; };
 let panel, context, bibleNotice, dayNotes, dateOptions;
 function install() {
@@ -66,18 +67,38 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
   document.getElementById('fas-set-aside')?.remove();
   document.getElementById('fas-set-aside-notice')?.remove();
   document.getElementById('selected-date-notes')?.remove();
+  document.getElementById('original-date-transfers')?.remove();
   panel.replaceChildren();
   const sets=day.sets;
   const names=[...new Set(sets.map(({row})=>row.title+(row.commemorationYear?' — '+row.commemorationYear:'')))];
   const heading=el('div',null,'reading-heading'),titles=el('div');
   const descriptions=[...new Set(sets.map(({row})=>row.subtitle).filter(Boolean))];
-  if(sets.length){
+  if(names.length>1){
+    titles.append(el('div',core.formatLong(date),'resolved-date'),el('h2','Commemorations'));
+    const list=el('ul',null,'commemoration-names');
+    for(const name of names)list.append(el('li',name));
+    titles.append(list);
+  }else if(sets.length){
     appendCommemorationHeading(titles,date,names.join('; '),descriptions.join('; '),'h2');
-    titles.append(el('p','For All the Saints · FAS readings','sunday-subheading'));
   }else{
     titles.append(el('div',core.formatLong(date),'resolved-date'));
+    if(!day.mainServiceFirst && !day.inactive.length)titles.append(el('p','No commemorations today.','no-commemorations'));
   }
   heading.append(titles);panel.append(heading);
+  const movedFromToday=day.observances.filter(item=>item.nominalDate&&item.observedDate&&core.sameDate(item.nominalDate,date)&&!core.sameDate(item.observedDate,date)&&item.active!==false&&!day.inactive.includes(item));
+  if(movedFromToday.length) {
+    const transfers=el('div',null,'set-aside-notice');transfers.id='original-date-transfers';
+    for(const item of movedFromToday) {
+      const reason=item.collision?.kind==='protected-period'
+        ? 'This date falls within the Easter transfer period; the feast is kept after the Second Sunday of Easter.'
+        : item.collision?.blockedBy ? `${item.collision.blockedBy} takes precedence on this date.` : '';
+      transfers.append(el('p',`${item.name} is transferred to ${core.formatLong(item.observedDate)}. ${reason}`.trim()));
+      const button=el('button',`View ${core.formatLong(item.observedDate)} readings`);button.type='button';
+      button.addEventListener('click',()=>selectDate(item.observedDate,{festivalName:item.lookupName||item.name}));transfers.append(button);
+    }
+    if(day.mainServiceFirst)context.querySelector('.reading-heading').after(transfers);
+    else titles.append(transfers);
+  }
   const jump=el('select');jump.id='fas-jump';jump.setAttribute('aria-label','Find a FAS commemoration');
   jump.append(new Option('Find a commemoration in this year…',''));
   const listed=new Set();
@@ -91,7 +112,9 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
   if(contextOnly)document.getElementById('reading-content').prepend(bibleNotice);
   else panel.append(bibleNotice);
   panel.hidden=mainServiceFirst;
-  context.open=mainServiceFirst;
+  const principalMovedAway=observances.some(item=>item.placement==='sunday'&&item.nominalDate&&item.assignedDate&&core.sameDate(item.nominalDate,date)&&!core.sameDate(item.assignedDate,date));
+  context.open=mainServiceFirst||principalMovedAway;
+  context.dataset.principalMovedAway=String(principalMovedAway);
   context.querySelector('summary').hidden=mainServiceFirst;
   context.querySelector('summary').textContent=`${exact?'Sunday / feast provision':'Sunday readings'} — ${mainName} · ${core.formatLong(selection.displayDate)}`;
   if(mainServiceFirst)panel.parentElement.prepend(context);
@@ -150,8 +173,13 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
     const dl=el('dl');
     addField(dl,'First reading',canonical?.ot||row.reading1,linkReading,canonical?.ot||row.reading1LinkReference||row.reading1);
     if(row.reading1LinkNote&&!canonical)dl.lastElementChild.querySelector('dd').append(el('span',row.reading1LinkNote,'partial-verse-note'));
-    addField(dl,'NZPB Psalms',canonical?.psalm||row.ps,canonical?linkReading:null);
-    if(!canonical)addField(dl,'Bible Psalms',row.biblePsalm,row.biblePsalm==='Not yet verified'?null:linkReading,row.biblePsalmLinkReference||row.biblePsalm);
+    const matchingPsalm = !canonical && samePsalm(row.ps,row.biblePsalm);
+    if(!canonical && !matchingPsalm && row.ps && row.biblePsalm && row.biblePsalm!=='Not yet verified' && !row.biblePsalmLinkReference) {
+      addField(dl,psalmNoun(row.ps),`NZPB: ${row.ps}\nBible: ${row.biblePsalm}`,linkReading);
+    } else {
+    addField(dl,canonical||matchingPsalm?psalmNoun(canonical?.psalm||row.ps):`NZPB ${psalmNoun(row.ps)}`,canonical?.psalm||row.ps,canonical||matchingPsalm?linkReading:null,canonical?.psalm||row.biblePsalmLinkReference||row.ps);
+    if(!canonical&&!matchingPsalm)addField(dl,`Bible ${psalmNoun(row.biblePsalm)}`,row.biblePsalm,row.biblePsalm==='Not yet verified'?null:linkReading,row.biblePsalmLinkReference||row.biblePsalm);
+    }
     addField(dl,'Second reading',canonical?.nt||row.reading2,linkReading);
     addField(dl,'Gospel',canonical?.gospel||row.gospel,linkReading);
     card.append(dl);

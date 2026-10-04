@@ -313,6 +313,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 /* Version 75: stable tablet/desktop columns; compact, accessible phone navigation. */
 .date-panel, .reading-panel, .track-card, .calendar-selectors { min-width: 0; }
 #calendar-disclosure, #fas-set-aside { scroll-margin-top: 9rem; }
+/* 83.1.0 draft: compact content, unchanged colours and touch target minimums. */
+.draft-unselected { display: none !important; }
+.palm-liturgy-grid { grid-template-columns: minmax(0, 1fr); }
+.compact-selector { grid-column: 1 / -1; }
+.compact-selector select { min-width: 0; max-width: 100%; flex: 1; }
+.track-card dl > div { min-height: 0; padding: 0.55rem 0.8rem; }
+.track-card header { padding: 0.65rem 0.8rem; }
+.reading-heading { margin-bottom: 0.65rem; }
+#track-choice:not([hidden]) ~ .tracks > .track-card > header > h3 { display: none; }
+#saint-date-choice > span { display: none; }
+#easter-late-service summary { cursor: pointer; padding: 0.6rem 0; font-weight: 650; }
 #calendar-summary { cursor: pointer; font-weight: 650; line-height: 1.5; padding: 0.35rem 0; }
 #calendar-disclosure[open] #calendar-summary { margin-bottom: 0.5rem; }
 .day-navigation > button, .set-aside-notice button { border: 1px solid #a9b9c8; border-radius: 7px; padding: 0.5rem 0.65rem; background: var(--card); color: var(--navy); cursor: pointer; }
@@ -339,6 +350,16 @@ button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visib
   .calendar-day { min-height: 40px; }
 }
 
+/* Release 83: independent project heading; existing liturgical colours retained. */
+.topbar { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; padding: 1.25rem 1.5rem; min-height: 0; }
+.topbar h1 { grid-column: 1; grid-row: 1; font-size: clamp(1.75rem, 4vw, 2.5rem); white-space: normal; margin: 0; }
+.site-footer .release-version { font-size: 0.8rem; }
+.site-footer a { color: var(--navy); text-underline-offset: 0.2em; }
+.planned-services { max-width: 42rem; margin: 0 auto 1rem; text-align: left; }
+.planned-services summary { cursor: pointer; display: list-item; padding: 0.5rem 0; }
+.planned-services li { margin-block: 0.4rem; }
+.change-history { max-width: 48rem; padding: 1.5rem; margin: auto; line-height: 1.6; }
+
 /* Touch sizing uses minimums, not fixed-height boxes: text may wrap and grow. */
 #fas-finder, #feast-date-finder { display: none; }
 button, select, input, summary, .reading-action, .reading-link { min-height: 44px; }
@@ -361,4 +382,25 @@ button, .reading-action, .reading-link { touch-action: manipulation; }
 @media (max-width: 360px) {
   .layout { padding-left: 2px; padding-right: 2px; }
   #calendar-disclosure { padding: 2px; }
+}
+/* 83.1.1 draft: date-first navigation; no permanent calendar sidebar. */
+.layout { grid-template-columns: minmax(0, 1fr); max-width: 68rem; gap: 0.75rem; padding: 0.75rem 1rem 1rem; }
+.date-panel { gap: 0.5rem; }
+.commemoration-names { margin: 0.5rem 0 0; padding-left: 1.2rem; line-height: 1.5; }
+.commemoration-names li + li { margin-top: 0.2rem; }
+.sunday-subheading:empty { display: none; }
+#underlying-sunday-provision > details > summary { padding: 0.6rem 0; cursor: pointer; font-weight: 650; }
+#calendar-disclosure { width: 100%; max-width: 26rem; padding: 0.35rem 0.75rem; }
+#calendar-disclosure[open] { padding-bottom: 0.75rem; }
+#date-options { max-width: 100%; }
+.compact-date-picker { display: flex; align-items: center; gap: 0.5rem; font-weight: 650; min-width: 0; }
+.compact-date-picker input { font: inherit; color: var(--navy); background: var(--card); border: 1px solid #a9b9c8; border-radius: 7px; padding: 0.4rem 0.55rem; min-width: 0; max-width: 100%; }
+.day-navigation { position: static; justify-content: center; }
+.day-navigation #calendar-disclosure { flex: 0 0 auto; width: max-content; max-width: 100%; padding: 0 0.75rem; border-radius: 7px; box-shadow: none; align-self: flex-start; }
+.day-navigation #calendar-disclosure > summary { width: max-content; max-width: 100%; padding: 0.6rem 0; margin: 0; }
+.day-navigation #calendar-disclosure[open] { width: min(26rem, 100%); padding-bottom: 0.75rem; }
+.date-panel:has(#date-options[hidden]) { display: none; }
+@media (max-width: 400px) {
+  .layout { padding-inline: 0.5rem; }
+  .compact-date-picker { flex: 1 1 12rem; }
 }

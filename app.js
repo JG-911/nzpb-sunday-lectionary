@@ -1,10 +1,12 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=82";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=82";
-import { enhanceInterface } from './modules/interface.js?v=82';
+import { LectionaryCore as core } from "./lectionary-core.js?v=83.2.3";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=83.2.3";
+import { enhanceInterface } from './modules/interface.js?v=83.2.3';
+import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.2.3';
+import {observanceHeading} from './modules/observance-heading.js?v=83.2.3';
 
-import {createDayModel} from './modules/day-model.js?v=82';
-import {sundayFeastReadings} from './modules/reading-data.js?v=82';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=82';
+import {createDayModel} from './modules/day-model.js?v=83.2.3';
+import {sundayFeastReadings} from './modules/reading-data.js?v=83.2.3';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.2.3';
 
 (function () {
   "use strict";
@@ -95,7 +97,8 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     let inheritedBook = "";
     String(value || "").split(/\r?\n/).forEach(line => {
       if (/^\s*NZPB:\s*/i.test(line)) return;
-      stripReadingLabel(line).split(/\s+(?:or|and)\s+/i).forEach(part => {
+      // Keep the conjunction inside this single book name; split reading lists.
+      stripReadingLabel(line).split(/\s+or\s+|\s+and\s+(?!the Dragon\b)/i).forEach(part => {
         let reference = part.trim();
         if (!reference || reference === "—") return;
         const bookMatch = /^((?:[1-3]\s+)?[A-Za-z][A-Za-z .’'\-]*?)\s+(\d.*)$/.exec(reference);
@@ -176,24 +179,25 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     const value = text || "—";
     if (/^Bible: /m.test(value)) {
       const lines = value.split(/\r?\n/);
-      const bible = lines.find(line => line.startsWith("Bible: "))?.slice(7).split(" or ") || [];
-      const nzpb = lines.find(line => line.startsWith("NZPB: "))?.slice(6).split(" or ") || [];
-      const common = bible.filter(reference => nzpb.includes(reference));
+      const psalmParts = text => text.split(' or ').map(part=>/^\d/.test(part.trim())?`Psalm ${part.trim()}`:part.trim());
+      const bible = psalmParts(lines.find(line => line.startsWith("Bible: "))?.slice(7)||'');
+      const nzpb = psalmParts(lines.find(line => line.startsWith("NZPB: "))?.slice(6)||'');
+      const common = bible.filter(reference => nzpb.some(other=>samePsalm(reference,other)));
       if (common.length) {
         const shared = document.createElement("div");
         setReading(shared, common.join(" or "));
         element.appendChild(shared);
       }
-      lines.forEach(line => {
+      lines.sort((a,b)=>Number(b.startsWith('NZPB:'))-Number(a.startsWith('NZPB:'))).forEach(line => {
         const match = /^(Bible|NZPB):\s*(.*)$/.exec(line);
         if (!match) return;
-        const reference = match[2].split(" or ").filter(part => !common.includes(part)).join(" or ");
+        const reference = psalmParts(match[2]).filter(part => !common.some(other=>samePsalm(part,other))).join(" or ");
         if (!reference) return;
         const group = document.createElement("div");
         group.className = "psalm-numbering-line";
         const label = document.createElement("small");
         label.className = "psalm-numbering-label";
-        label.textContent = match[1];
+        label.textContent = `${match[1]} ${psalmNoun(reference)}`;
         label.title = match[1] === "Bible" ? "Bible Version Numbering — Vanderbilt reference" : "NZPB Psalms numbering — retained NZPB/Lectionary reference";
         group.appendChild(label);
         const reading = document.createElement("span");
@@ -427,8 +431,8 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     elements.yearSelect.value = String(state.month.getFullYear());
     elements.calendar.replaceChildren();
     const first = new Date(state.month.getFullYear(), state.month.getMonth(), 1, 12);
-    const mondayOffset = (first.getDay() + 6) % 7;
-    const start = core.addDays(first, -mondayOffset);
+    const sundayOffset = first.getDay();
+    const start = core.addDays(first, -sundayOffset);
     const resolved = day.selection.displayDate;
 
     for (let index = 0; index < 42; index += 1) {
@@ -569,9 +573,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     renderVigil(entry, result.context.cycle);
     elements.emptyState.hidden = true;
     elements.sundayName.textContent = result.observance ? result.name : entry.name;
-    elements.sundaySubheading.textContent = result.observance
-      ? (result.subtitle || (entry.subheading && entry.subheading !== result.name ? entry.subheading : ""))
-      : (entry.subheading || "");
+    elements.sundaySubheading.textContent = observanceHeading(entry,result,sunday,core);
     const proper = properTitle(entry, sunday);
     if (proper) elements.sundaySubheading.textContent = [elements.sundaySubheading.textContent, proper].filter(Boolean).join(" · ");
     elements.seasonBadge.textContent = result.observance ? result.season : entry.season;
@@ -625,7 +627,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       const mainIsDifferent = result.name !== choiceName;
       elements.saintDateChoiceText.textContent = mainIsDifferent ? `For ${choiceName}. ${result.name} remains the main service here.` : '';
       const chosenDate = authorisedDates[choice === 'alternative' ? 1 : 0];
-      elements.saintObservanceStatus.textContent = `${choice === 'alternative' ? 'Alternate' : 'Official'} date selected: ${dateFormatter.format(chosenDate.observed)}.`;
+      elements.saintObservanceStatus.textContent = `${choice === 'alternative' ? 'Alternate' : 'Official'} calendar date: ${dateFormatter.format(chosenDate.nominal)}. Observed: ${dateFormatter.format(chosenDate.observed)}${core.sameDate(chosenDate.nominal, chosenDate.observed) ? '.' : ' — transferred.'}`;
       elements.saintChoiceOfficial.textContent = 'Official date';
       [
         [elements.saintChoiceOfficial, "official"],
@@ -764,6 +766,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     renderReading(day);
     renderFas(state.selected, preferences, selectDate, setReading, createSetActions, day);
     enhanceInterface(core.formatLong(state.selected));
+    $('selected-date').value = core.formatISO(state.selected);
     $('sunday-navigation').hidden = !state.sundaysOnly;
     for (const [id, active] of [['all-days-mode', !state.sundaysOnly], ['sundays-only-mode', state.sundaysOnly]]) {
       $(id).classList.toggle('active', active);
@@ -796,6 +799,12 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     elements.monthSelect.appendChild(option);
   });
   elements.todayButton.addEventListener("click", () => selectDate(new Date()));
+  $('selected-date').addEventListener('change', event => {
+    const input=event.target;
+    if (!input.value || !input.checkValidity()) return;
+    const date=core.parseISO(input.value);
+    if (date && core.formatISO(date)===input.value && date.getFullYear()>=1600 && date.getFullYear()<=4099) selectDate(date);
+  });
   $("bible-version").addEventListener("change", event => {
     state.bibleVersion = event.target.value;
     $("apocrypha-status").hidden = selectedBibleVersion().apocrypha;
