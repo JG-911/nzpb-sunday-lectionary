@@ -327,6 +327,7 @@
         placement,
         nominalDate: item.nominal,
         assignedDate: item.assigned,
+        observedDate,
         note: `${item.name} is being observed on ${placement === "sunday" ? "the assigned Sunday" : "its calendar date"}. Permitted rule: ${item.rule}.`
       }));
       if (!sameDate(item.nominal, item.assigned) && sameDate(date, placement === "sunday" ? item.nominal : item.assigned)) {
@@ -338,6 +339,7 @@
           placement,
           nominalDate: item.nominal,
           assignedDate: item.assigned,
+          observedDate,
           note: `${item.name} is currently placed on ${formatLong(observedDate)}; it may instead be observed here.`
         }));
       }
@@ -378,9 +380,21 @@
     }));
 
     const annunciation = annunciationDate(year);
+    const annunciationNominal = atNoon(year, 2, 25);
     if (sameDate(date, annunciation)) matches.push(observance("The Annunciation of our Saviour to the Blessed Virgin Mary", "Principal Feast", {
       lookupName: "The Annunciation of our Saviour to the Blessed Virgin Mary",
+      nominalDate: annunciationNominal,
+      observedDate: annunciation,
       note: annunciation.getDate() === 25 ? "Observed on 25 March." : `Transferred from 25 March to ${formatLong(annunciation)} under the precedence rule.`
+    }));
+
+    if (!sameDate(annunciationNominal, annunciation) && sameDate(date, annunciationNominal)) matches.push(observance("The Annunciation of our Saviour to the Blessed Virgin Mary", "Transferred Principal Feast", {
+      lookupName: "The Annunciation of our Saviour to the Blessed Virgin Mary",
+      replacesSunday: false,
+      informational: true,
+      nominalDate: annunciationNominal,
+      observedDate: annunciation,
+      note: `Transferred to ${formatLong(annunciation)} under the Annunciation precedence rule.`
     }));
 
     const allSoulsNominal = atNoon(year, 10, 2);

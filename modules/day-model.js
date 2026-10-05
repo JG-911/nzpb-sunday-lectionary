@@ -1,5 +1,5 @@
-import {LectionaryCore as core} from '../lectionary-core.js?v=83.2.3';
-import {fasMatches,isUnselected,sundayFeastReadings} from './reading-data.js?v=83.2.3';
+import {LectionaryCore as core} from '../lectionary-core.js?v=83.4.3';
+import {fasMatches,isUnselected,sundayFeastReadings} from './reading-data.js?v=83.4.3';
 // Sole owner of selected-day main-versus-FAS layout decisions. No DOM or storage.
 export function createDayModel(date,preferences={},direction='next',festivalOverride=null){
  const selection=core.resolveSelection(date,direction,preferences,festivalOverride);

@@ -1,12 +1,13 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=83.2.3";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=83.2.3";
-import { enhanceInterface } from './modules/interface.js?v=83.2.3';
-import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.2.3';
-import {observanceHeading} from './modules/observance-heading.js?v=83.2.3';
+import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.3";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.3";
+import { enhanceInterface } from './modules/interface.js?v=83.4.3';
+import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.3';
+import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.3';
+import {observanceHeading} from './modules/observance-heading.js?v=83.4.3';
 
-import {createDayModel} from './modules/day-model.js?v=83.2.3';
-import {sundayFeastReadings} from './modules/reading-data.js?v=83.2.3';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.2.3';
+import {createDayModel} from './modules/day-model.js?v=83.4.3';
+import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.3';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.3';
 
 (function () {
   "use strict";
@@ -26,6 +27,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     festivalChoiceContext: null,
     festivalReadingOverride: null,
     trackMode: "continuous",
+    palmProcession: true,
     optionalChoices: {},
     bibleVersion: "NRSVA",
     underlyingTrackMode: "continuous"
@@ -178,33 +180,21 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     element.replaceChildren();
     const value = text || "—";
     if (/^Bible: /m.test(value)) {
-      const lines = value.split(/\r?\n/);
-      const psalmParts = text => text.split(' or ').map(part=>/^\d/.test(part.trim())?`Psalm ${part.trim()}`:part.trim());
-      const bible = psalmParts(lines.find(line => line.startsWith("Bible: "))?.slice(7)||'');
-      const nzpb = psalmParts(lines.find(line => line.startsWith("NZPB: "))?.slice(6)||'');
-      const common = bible.filter(reference => nzpb.some(other=>samePsalm(reference,other)));
-      if (common.length) {
-        const shared = document.createElement("div");
-        setReading(shared, common.join(" or "));
-        element.appendChild(shared);
-      }
-      lines.sort((a,b)=>Number(b.startsWith('NZPB:'))-Number(a.startsWith('NZPB:'))).forEach(line => {
-        const match = /^(Bible|NZPB):\s*(.*)$/.exec(line);
-        if (!match) return;
-        const reference = psalmParts(match[2]).filter(part => !common.some(other=>samePsalm(part,other))).join(" or ");
-        if (!reference) return;
-        const group = document.createElement("div");
-        group.className = "psalm-numbering-line";
-        const label = document.createElement("small");
-        label.className = "psalm-numbering-label";
-        label.textContent = `${match[1]} ${psalmNoun(reference)}`;
-        label.title = match[1] === "Bible" ? "Bible Version Numbering — Vanderbilt reference" : "NZPB Psalms numbering — retained NZPB/Lectionary reference";
-        group.appendChild(label);
-        const reading = document.createElement("span");
-        if (match[1] === "Bible") setReading(reading, reference);
-        else { reading.className = "nzpb-numbering-reference"; reading.textContent = reference; }
-        group.appendChild(reading);
-        element.appendChild(group);
+      psalmNumberingOptions(value).forEach((option,index) => {
+        if(index){const separator=document.createElement('span');separator.className='reading-alternative-separator';separator.textContent='or';element.append(separator);}
+        const alternative=document.createElement('div');alternative.className='psalm-alternative';
+        if(option.shared)setReading(alternative,option.nzpb);
+        else for(const [kind,reference]of [['NZPB',option.nzpb],['Bible',option.bible]]){
+          if(!reference)continue;
+          const group=document.createElement('div');group.className='psalm-numbering-line';
+          const label=document.createElement('small');label.className='psalm-numbering-label';label.textContent=`${kind} ${psalmNoun(reference)}`;
+          label.title=kind==='Bible'?'Bible Version Numbering — Vanderbilt reference':'NZPB Psalms numbering — retained NZPB/Lectionary reference';
+          const reading=document.createElement('span');
+          if(kind==='Bible')setReading(reading,reference);
+          else{reading.className='nzpb-numbering-reference';reading.textContent=reference;}
+          group.append(label,reading);alternative.append(group);
+        }
+        element.append(alternative);
       });
       return;
     }
@@ -216,7 +206,11 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     if (!passages.length) return;
     const links = document.createElement("span");
     links.className = "reading-links";
-    passages.forEach(passage => {
+    // Keep source notation on the clickable reference, not a duplicate line.
+    const separators=value.match(/\s+or\s+|\s+and\s+(?!the Dragon\b)|\r?\n/gi)||[];
+    if(passages.every(passage=>passage.valid))readingText.hidden=true;
+    passages.forEach((passage,index) => {
+      if(index){const separator=document.createElement('span');separator.className='reading-separator';separator.textContent=separators[index-1]?.trim()||';';links.appendChild(separator);}
       let choices;
       const short = gatewayReference(passage.source, false);
       const extended = gatewayReference(passage.source, true);
@@ -251,7 +245,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       link.href = gatewayUrl([passage]);
       link.target = "_blank";
       link.rel = "noreferrer";
-      link.textContent = passage.normalized;
+      link.textContent = passage.source;
       // A single reference can be its own link without losing source notation.
       if (passages.length === 1) {
         link.textContent = value;
@@ -338,36 +332,27 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     if (!show) return;
     const vigil = window.EASTER_VIGIL_DATA;
     $("vigil-timing").textContent = `${vigil.timing} Vigil colour: White.`;
-    $("vigil-instruction").textContent = `${vigil.instruction} Readings are listed Old Testament, New Testament, then Gospel; Psalms are numerical, followed by canticles.`;
+    $("vigil-instruction").textContent = `${vigil.instruction} Each Psalm or canticle is shown immediately after its reading.`;
     const readings = $("vigil-readings");
     readings.replaceChildren();
     // Display order is separate from the source pairs and worship sequence.
     // Apocryphal books follow the Old Testament, before the New Testament.
     const bookOrder = ["Genesis", "Exodus", "Psalm", "Proverbs", "Isaiah", "Ezekiel", "Zephaniah", "Baruch", "Romans", "Matthew", "Mark", "Luke"];
-    const ordered = (items, field) => items.sort((a, b) => {
-      if (field === "response") {
-        const psalmOrder = Number(!a.value.startsWith("Psalm")) - Number(!b.value.startsWith("Psalm"));
-        if (psalmOrder) return psalmOrder;
-      }
+    const ordered = items => items.sort((a, b) => {
       const book = value => bookOrder.findIndex(name => value.startsWith(name));
       return book(a.value) - book(b.value) || a.value.localeCompare(b.value, "en", { numeric: true });
     });
     const pairs = [...vigil.oldTestament, vigil.newTestament, { reading: vigil.gospels[cycle], required: true }];
     const groups = [
-      { title: "Readings Required", required: true, field: "reading" },
-      { title: "Psalms or Canticle Required", required: true, field: "response" },
-      { title: "Readings Optional", required: false, field: "reading" },
-      { title: "Psalms or Canticle Optional", required: false, field: "response" }
+      { title: "Required readings and responses", required: true },
+      { title: "Optional readings and responses", required: false }
     ];
     groups.forEach(section => {
-      const items = ordered(pairs.filter(pair => Boolean(pair.required) === section.required && pair[section.field]).flatMap(pair => {
-        const alternatives = section.field === "reading" ? pair.reading.split(" or ") : [pair.response];
-        return alternatives.map(value => ({
-          value,
-          label: section.field === "response" ? `Response for ${pair.reading}`
-            : alternatives.length > 1 ? `Alternative to ${alternatives.filter(other => other !== value).join(" or ")}` : "Reading"
-        }));
-      }), section.field);
+      const items = ordered(pairs.filter(pair => Boolean(pair.required) === section.required)
+        .map(pair => ({ ...pair, value: pair.reading }))).flatMap(pair => [
+          { value: pair.reading, label: "Reading" },
+          ...(pair.response ? [{ value: pair.response, label: `${pair.response.startsWith("Psalm") ? "Psalm" : "Canticle"} — response to ${pair.reading}` }] : [])
+        ]);
       const card = document.createElement("article");
       card.className = "track-card vigil-card";
       const header = document.createElement("header");
@@ -590,12 +575,12 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       setText(elements.tePouherePrecedenceText, tePouhereData.precedence);
       elements.tePouhereLectionaryLink.href = tePouhereData.sourceUrl;
       elements.tePouhereCalendarLink.href = tePouhereData.calendarSourceUrl;
-      setText(elements.tePouhereSentence, tePouhereData.sentence);
+      setReading(elements.tePouhereSentence, tePouhereData.sentence);
       setReading(elements.tePouhereOt, tePouhereData.ot);
       setReading(elements.tePouherePsalm, tePouhereData.psalm);
       setReading(elements.tePouhereNt, tePouhereData.nt);
       setReading(elements.tePouhereGospel, tePouhereData.gospel);
-      setText(elements.tePouherePostCommunion, tePouhereData.postCommunion);
+      setReading(elements.tePouherePostCommunion, tePouhereData.postCommunion);
       setReadingSetActions(document.querySelector(".te-pouhere-card"), [tePouhereData.ot, tePouhereData.psalm, tePouhereData.nt, tePouhereData.gospel], "Te Pouhere set");
       setText(elements.ordinaryAlternativeTitle, [ordinaryTitle, proper].filter(Boolean).join(" · "));
     }
@@ -688,16 +673,27 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     elements.palmLiturgy.hidden = !palmData;
     elements.tracks.hidden = Boolean(palmData) || entry.name === "Christmas Day";
     if (palmData) {
+      let question=$('palm-procession-choice');
+      if(!question){question=document.createElement('div');question.id='palm-procession-choice';question.className='proper-selector';elements.palmLiturgy.prepend(question);}
+      question.replaceChildren('Is there a procession? ');
+      for(const [value,label] of [[true,'Yes'],[false,'No']]){
+        const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('aria-pressed',String(state.palmProcession===value));
+        button.addEventListener('click',()=>{state.palmProcession=value;render();});question.append(button);
+      }
+      elements.palmLiturgy.dataset.procession=String(state.palmProcession);
       setText(elements.palmInstructionText, palmData.instruction);
       setReading(elements.palmsGospel, palmData.palmsGospel);
       setReading(elements.palmsPsalm, palmData.palmsPsalm);
       setText(elements.palmsCollect, palmData.palmsCollect);
-      setReading(elements.passionOt, palmData.passionOt);
-      setReading(elements.passionPsalm, palmData.passionPsalm);
+      const first=state.palmProcession?palmData.passionOt:palmData.palmsGospel;
+      const psalm=state.palmProcession?palmData.passionPsalm:palmData.palmsPsalm;
+      setReading(elements.passionOt, first);
+      setReading(elements.passionPsalm, psalm);
       setReading(elements.passionNt, palmData.passionNt);
       setReading(elements.passionGospel, palmData.passionGospel);
       setReadingSetActions(document.querySelector(".palms-card"), [palmData.palmsGospel, palmData.palmsPsalm], "Palms set");
-      setReadingSetActions(document.querySelector(".passion-card"), [palmData.passionOt, palmData.passionPsalm, palmData.passionNt, palmData.passionGospel], "Passion set");
+      document.querySelector('.passion-card h3').textContent=state.palmProcession?'Liturgy of the Passion':'Readings without a procession';
+      setReadingSetActions(document.querySelector(".passion-card"), [first, psalm, palmData.passionNt, palmData.passionGospel], "all readings");
       return;
     }
 
@@ -754,6 +750,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   }
 
   function render() {
+    resetReadingWorkspace();
     if (state.sundaysOnly && state.selected.getDay() !== 0) {
       state.selected = core.addDays(state.selected, 7 - state.selected.getDay());
       state.month = new Date(state.selected.getFullYear(), state.selected.getMonth(), 1, 12);
@@ -766,6 +763,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     renderReading(day);
     renderFas(state.selected, preferences, selectDate, setReading, createSetActions, day);
     enhanceInterface(core.formatLong(state.selected));
+    buildReadingWorkspace(day,core.formatISO(state.selected));
     $('selected-date').value = core.formatISO(state.selected);
     $('sunday-navigation').hidden = !state.sundaysOnly;
     for (const [id, active] of [['all-days-mode', !state.sundaysOnly], ['sundays-only-mode', state.sundaysOnly]]) {

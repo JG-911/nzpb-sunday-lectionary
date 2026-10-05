@@ -1,13 +1,23 @@
 // Presentation only: never changes reading references, dates or preferences.
-import {psalmNoun} from './psalm-labels.js?v=83.2.3';
+import {psalmNoun} from './psalm-labels.js?v=83.4.3';
 let proper = '1';
 let installed = false;
 const selections = new Map();
 // Display state only: never changes appointments, required readings or date choices.
-function readingSelector(host, cards, label, key) {
+function readingSelector(host, cards, label, key, dayIdentity='') {
   if (!host) return;
   host.querySelector(`:scope > [data-selector="${key}"]`)?.remove();
   if (cards.length < 2) return;
+  if(key==='vigil'){
+    const control=document.createElement('details');control.className='vigil-reading-picker';control.dataset.selector=key;
+    const summary=document.createElement('summary');control.append(summary);
+    const options=document.createElement('div');options.className='reading-name-buttons';control.append(options);
+    let selected=selections.get(key)||'0';
+    const names=cards.map(card=>card.querySelector('header h3')?.textContent||'Readings');
+    const show=()=>{summary.textContent='Vigil readings — '+(selected==='all'?'Show all':names[Number(selected)]);cards.forEach((card,index)=>card.classList.toggle('draft-unselected',selected!=='all'&&selected!==String(index)));};
+    [...names,'Show all'].forEach((name,index)=>{const button=document.createElement('button');button.type='button';button.textContent=name;button.addEventListener('click',()=>{selected=index===names.length?'all':String(index);selections.set(key,selected);show();control.open=false;summary.focus({preventScroll:true});});options.append(button);});
+    const note=document.createElement('small');note.textContent='Choose at least three Old Testament readings, including Exodus.';control.append(note);host.prepend(control);show();return;
+  }
   const control = document.createElement('label');
   control.className = 'proper-selector compact-selector'; control.dataset.selector=key;
   control.append(`${label} `);
@@ -16,12 +26,13 @@ function readingSelector(host, cards, label, key) {
   select.add(new Option('Show all','all')); control.append(select);
   const heading=host.querySelector(':scope > .reading-heading') || host.querySelector(':scope > summary');
   if(heading)heading.after(control);else host.prepend(control);
-  if(key==='vigil') {
-    const note=document.createElement('small');note.textContent='View both required groups; this selector does not make required readings optional.';
-    control.append(note);
-  }
-  select.value=selections.get(key)||'0'; if(!select.value)select.value='0';
-  const show=()=>{selections.set(key,select.value);cards.forEach((card,index)=>card.classList.toggle('draft-unselected',select.value!=='all'&&select.value!==String(index)));};
+  // Show every commemoration initially. A choice for one day must not hide
+  // unrelated saints at the same numerical position on another day.
+  const commemorations=key==='fas-panel'||key==='fas-set-aside';
+  const stateKey=commemorations?`${key}|${dayIdentity}|${cards.map(card=>card.dataset.fasId).join(',')}`:key;
+  const defaultValue=commemorations?'all':'0';
+  select.value=selections.get(stateKey)||defaultValue; if(!select.value)select.value=defaultValue;
+  const show=()=>{selections.set(stateKey,select.value);cards.forEach((card,index)=>card.classList.toggle('draft-unselected',select.value!=='all'&&select.value!==String(index)));};
   select.addEventListener('change',show); show();
 }
 export function enhanceInterface(dateLabel) {
@@ -33,7 +44,9 @@ export function enhanceInterface(dateLabel) {
     document.querySelector('.day-navigation').append(calendar);
     document.addEventListener('click', event => {
       if (!event.target.closest('.back-to-top')) return;
-      document.getElementById('selected-date').focus({preventScroll:true});
+      // Focus a non-interactive landmark, never the native date picker.
+      const title=document.querySelector('.topbar h1') || document.querySelector('h1');
+      if(title){title.tabIndex=-1;title.focus({preventScroll:true});}
       window.scrollTo({top:0,behavior:'instant'});
     });
   }
@@ -72,11 +85,16 @@ export function enhanceInterface(dateLabel) {
     select.value = proper;
     showProper();
   }
-  readingSelector(document.querySelector('.palm-liturgy-grid'), [...document.querySelectorAll('.palm-liturgy-grid > .track-card')], 'Liturgy', 'palm');
+  const palm=document.getElementById('palm-liturgy');
+  if(palm&&!palm.hidden){
+    let procession=document.getElementById('procession-readings');
+    if(!procession){procession=document.createElement('details');procession.id='procession-readings';const title=document.createElement('summary');title.textContent='Procession readings — Liturgy of the Palms';procession.append(title,document.querySelector('.palms-card'));document.querySelector('.palm-liturgy-grid').append(procession);}
+    procession.hidden=palm.dataset.procession!=='true';
+  }
   readingSelector(document.getElementById('vigil-readings'), [...document.querySelectorAll('#vigil-readings > .track-card')], 'Vigil readings', 'vigil');
   for(const id of ['fas-panel','fas-set-aside']) {
     const host=document.getElementById(id);
-    readingSelector(host,[...(host?.querySelectorAll(':scope > .track-card')||[])],'Commemoration',id);
+    readingSelector(host,[...(host?.querySelectorAll(':scope > .track-card')||[])],'Commemoration',id,dateLabel);
   }
   const late=document.getElementById('easter-late-service');
   const underlying=document.getElementById('underlying-sunday-provision');

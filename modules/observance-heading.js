@@ -6,12 +6,15 @@ export function observanceHeading(entry,result,date,core) {
     const observed=core.annunciationDate(date.getFullYear());
     return core.sameDate(nominal,observed)
       ? ''
-      : `Transferred from ${core.formatLong(nominal)}; observed ${core.formatLong(observed)}.`;
+      : core.sameDate(date,observed)
+        ? `Transferred from ${core.formatLong(nominal)}.`
+        : `Transferred from ${core.formatLong(nominal)}; observed ${core.formatLong(observed)}.`;
   }
   const item=result.observance;
   if(item?.nominalDate) {
     const observed=item.observedDate || (item.placement==='sunday'?item.assignedDate:item.nominalDate);
     if(observed&&!core.sameDate(item.nominalDate,observed)) {
+      if(core.sameDate(date,observed))return `${item.placement==='sunday'?'Sunday observance selected; calendar date':'Transferred from'} ${core.formatLong(item.nominalDate)}.`;
       return `${item.placement==='sunday'?'Sunday observance selected':'Transferred'}: ${core.formatLong(observed)}. Calendar date: ${core.formatLong(item.nominalDate)}.`;
     }
   }

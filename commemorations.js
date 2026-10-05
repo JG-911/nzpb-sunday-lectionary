@@ -1,6 +1,6 @@
-import {LectionaryCore as core} from './lectionary-core.js?v=83.2.3';
-import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.2.3';
-import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=83.2.3';
+import {LectionaryCore as core} from './lectionary-core.js?v=83.4.3';
+import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.4.3';
+import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=83.4.3';
 const el = (tag, text, cls) => { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; };
 let panel, context, bibleNotice, dayNotes, dateOptions;
 function install() {
@@ -145,12 +145,12 @@ export function renderFas(date, preferences, selectDate, linkReading, createSetA
       const destination=appointment ? ` — ${appointment.informational&&appointment.active===false?'alternative provision on':'transferred to'} ${core.formatLong(appointment.observedDate)}` : '';
       return [name,name+destination];
     })).values()];
-    const aside=el('details',null,'easter-vigil');aside.id='fas-set-aside';aside.append(el('summary','Set aside — '+labels.join('; ')));panel.parentElement.append(aside);cards=aside;
-    const notice=el('div',null,'set-aside-notice');notice.id='fas-set-aside-notice';
-    for(const label of labels)notice.append(el('p','Set aside: '+label));
-    const jump=el('button','View set-aside readings');jump.type='button';
-    jump.addEventListener('click',()=>{aside.open=true;aside.querySelector('summary').focus({preventScroll:true});aside.scrollIntoView({block:'start'});});
-    notice.append(jump);panel.parentElement.insertBefore(notice,context);
+    // One disclosure replaces the duplicate notice and distant jump target.
+    const aside=el('details',null,'easter-vigil');aside.id='fas-set-aside';aside.append(el('summary','Set aside — '+labels.join('; ')));
+    context.querySelector('.reading-heading').after(aside);cards=aside;
+    // The summary already names these transfers; expand it for reasons and links.
+    const transfers=document.getElementById('original-date-transfers');
+    if(transfers && movedFromToday.every(item=>visible.some(({row})=>(row.sharedObservance||row.title)===item.name)))aside.append(transfers);
   }
   const seen=new Set();
   for(const {row} of visible){

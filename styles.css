@@ -373,7 +373,7 @@ button, .reading-action, .reading-link { touch-action: manipulation; }
 .calendar-selectors input { flex-shrink: 0; }
 .calendar-selectors select, .calendar-selectors input { min-height: 44px; }
 .calendar-heading { gap: 0.25rem; }
-.reading-link, .reading-link.primary-reading-link { min-height: 44px; max-width: 100%; padding: 0.5rem 0.65rem; border: 1px solid #a9b9c8; border-radius: 7px; background: #f6f9fb; font: inherit; color: var(--blue); text-decoration: none; white-space: normal; overflow-wrap: anywhere; }
+.reading-link, .reading-link.primary-reading-link { min-height: 44px; max-width: 100%; padding: 0.5rem 0.65rem; border: 1px solid #a9b9c8; border-radius: 7px; background: #f6f9fb; font: inherit; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: var(--blue); text-decoration: none; white-space: normal; overflow-wrap: anywhere; }
 .optional-reading-choice { flex-wrap: wrap; }
 .optional-reading-choice button, .reading-action { min-height: 44px; white-space: normal; }
 .reading-links { gap: 0.5rem; }
@@ -400,6 +400,46 @@ button, .reading-action, .reading-link { touch-action: manipulation; }
 .day-navigation #calendar-disclosure > summary { width: max-content; max-width: 100%; padding: 0.6rem 0; margin: 0; }
 .day-navigation #calendar-disclosure[open] { width: min(26rem, 100%); padding-bottom: 0.75rem; }
 .date-panel:has(#date-options[hidden]) { display: none; }
+.date-panel:not(:has(#date-options)) { display: none; }
+/* 83.3.0 draft: one observance panel, compact controls, unchanged touch targets. */
+.reading-settings, .reading-picker { border: 1px solid var(--line); border-radius: 8px; padding: 0.35rem 0.7rem; margin-bottom: 0.65rem; }
+.reading-picker > summary { cursor: pointer; padding: 0.5rem 0; font-weight: 650; }
+.reading-settings #date-options { box-shadow: none; padding: 0.5rem; margin-top: 0.5rem; }
+.reading-name-buttons { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
+.reading-name-buttons button { text-align: left; width: auto; max-width: 100%; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--navy); }
+.reading-name-buttons button[aria-pressed="true"] { background: var(--navy); color: white; }
+.reading-picker small { display: block; }
+.reading-panel { padding: clamp(0.7rem, 1.5vw, 1.25rem); }
+.reading-choice-panel .track-card { margin-block: 0.65rem; }
+.reading-choice-panel > details { margin-top: 0; }
+.reading-choice-panel[hidden] { display: none !important; }
+/* Compact shared row; names wrap within their column on narrow screens. */
+#reading-workspace { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0.5rem; align-items: start; }
+.settings-toggle { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; border: 0; padding: 0; margin: 0; border-radius: 7px; background: transparent; color: var(--navy); cursor: pointer; }
+.settings-toggle svg { width: 18px; height: 18px; }
+.settings-toggle[aria-expanded="true"] { background: var(--blue-soft); }
+.reading-picker { grid-column: 2; grid-row: 1; min-width: 0; margin: 0; padding: 0 0.65rem; }
+.reading-picker > summary { overflow-wrap: anywhere; line-height: 1.45; }
+.selected-reading { grid-column: 1 / -1; min-width: 0; }
+.reading-settings { grid-column: 1 / -1; grid-row: 2; margin: 0; min-width: 0; }
+.reading-picker .reading-name-buttons { margin: 0; gap: 0.25rem; }
+.reading-picker .reading-name-buttons button { border: 0; background: transparent; padding: 0.45rem 0.6rem; }
+.reading-picker .reading-name-buttons button[aria-pressed="true"] { background: var(--blue-soft); color: var(--navy); text-decoration: underline; text-underline-offset: 0.2em; font-weight: 750; }
+.reading-observance-note { padding: 0.65rem 0; margin: 0 0 0.5rem; border-bottom: 1px solid var(--line); line-height: 1.5; color: var(--navy); }
+/* Compact natural-flow spacing; no fixed reading-panel heights. */
+.te-pouhere-provision { gap: 0.35rem; margin-top: 0.3rem; }
+#te-pouhere-notes { margin: 0 0 0.25rem; }
+#te-pouhere-notes > summary { padding-block: 0.35rem; }
+.reading-panel > .back-to-top { margin: 0.5rem 0 0; }
+.reading-choice-panel > details { margin-bottom: 0; }
+.vigil-reading-picker { grid-column: 1 / -1; min-width: 0; margin-bottom: 0.65rem; }
+.vigil-reading-picker summary { white-space: normal; overflow-wrap: anywhere; line-height: 1.5; padding: 0.5rem; cursor: pointer; }
+.vigil-reading-picker .reading-name-buttons button { white-space: normal; }
+#palm-procession-choice button { padding: 0.5rem 0.9rem; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--navy); }
+#palm-procession-choice button[aria-pressed="true"] { background: var(--navy); color: white; }
+#palm-liturgy .palm-liturgy-grid { grid-template-columns: minmax(0,1fr); }
+#palm-liturgy .replaceable-reading dt span { display: none; }
+#procession-readings { margin-block: 0.4rem; }
 @media (max-width: 400px) {
   .layout { padding-inline: 0.5rem; }
   .compact-date-picker { flex: 1 1 12rem; }
