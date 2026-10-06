@@ -1,15 +1,15 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.8";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.8";
-import { enhanceInterface } from './modules/interface.js?v=83.4.8';
-import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.8';
-import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.8';
-import {observanceHeading} from './modules/observance-heading.js?v=83.4.8';
-import {trackYear,annualTrack,palmService,palmInstructions} from './modules/service-options.js?v=83.4.8';
-import {TRACK_CHOICE_STORAGE_KEY,loadTrackChoices} from './modules/preferences.js?v=83.4.8';
+import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.9";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.9";
+import { enhanceInterface } from './modules/interface.js?v=83.4.9';
+import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.9';
+import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.9';
+import {observanceHeading} from './modules/observance-heading.js?v=83.4.9';
+import {trackYear,annualTrack,palmService,palmInstructions} from './modules/service-options.js?v=83.4.9';
+import {TRACK_CHOICE_STORAGE_KEY,loadTrackChoices} from './modules/preferences.js?v=83.4.9';
 
-import {createDayModel} from './modules/day-model.js?v=83.4.8';
-import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.8';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.8';
+import {createDayModel} from './modules/day-model.js?v=83.4.9';
+import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.9';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.9';
 
 (function () {
   "use strict";

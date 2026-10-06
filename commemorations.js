@@ -1,6 +1,6 @@
-import {LectionaryCore as core} from './lectionary-core.js?v=83.4.8';
-import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.4.8';
-import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=83.4.8';
+import {LectionaryCore as core} from './lectionary-core.js?v=83.4.9';
+import {samePsalm, psalmNoun} from './modules/psalm-labels.js?v=83.4.9';
+import {fasRows as rows, fasMatches as matches, findSharedReading} from './modules/reading-data.js?v=83.4.9';
 const el = (tag, text, cls) => { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; };
 let panel, context, bibleNotice, dayNotes, dateOptions;
 function install() {

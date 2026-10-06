@@ -1,5 +1,5 @@
 // Presentation only: choosing a reading does not change observance preferences.
-import {observanceNotice} from './observance-notice.js?v=83.4.8';
+import {observanceNotice} from './observance-notice.js?v=83.4.9';
 let undo=[];
 let settingsOpen=false;
 const choices=new Map();
@@ -126,6 +126,25 @@ export function buildReadingWorkspace(day,date){
   };
   for(const entry of ordered){
     const button=document.createElement('button');button.type='button';button.textContent=entry.label;button.addEventListener('click',()=>select(entry));buttons.append(button);entry.button=button;
+    // Classify each observance independently of the day it displaces.
+    const data=window.LITURGICAL_COLOUR_DATA||{};
+    const row=day.visible.find(({row})=>row.id===entry.id)?.row;
+    const name=row?.sharedObservance||entry.label;
+    let code=data.classifications?.[data.observanceClassifications?.[name]]?.code||data.sundayOverrides?.[name];
+    if(!code&&row&&/\bmartyrs?\b/i.test(row.subtitle||''))code='R';
+    if(!code&&row&&/\b(bishop|priest|missionary|teacher|abbot|abbess|deacon|religious)\b/i.test(row.subtitle||''))code='W';
+    if(!code&&(entry.id==='ordinary'||/Ordinary Time/.test(name)))code='G';
+    if(!code&&['easter-vigil','easter-late-service'].includes(entry.id))code='W';
+    if(!code&&entry.id==='main')code=document.getElementById('colour-label')?.textContent.trim().split(' ')[0];
+    if(!code&&entry.id==='underlying'){
+      if(/Advent|Lent/.test(name))code='V';
+      else if(/Easter|Christmas|Epiphany/.test(name))code='W';
+    }
+    const palette={W:'#f7f5ef',R:'#a53b3f',V:'#64447e',G:'#3f7354',NONE:'#8b8b86'};
+    button.style.setProperty('--tab-colour',palette[code]||'#8b8b86');
+    button.dataset.colour=code||'unconfirmed';
+    entry.panel.id='reading-choice-'+entry.id;
+    button.setAttribute('aria-controls',entry.panel.id);
   }
   select(ordered.find(e=>e.id===choices.get(stateKey))||ordered[0]);
   if(ordered.length===1)picker.hidden=true;
