@@ -1,5 +1,5 @@
 // Presentation only: never changes reading references, dates or preferences.
-import {psalmNoun} from './psalm-labels.js?v=83.4.3';
+import {psalmNoun} from './psalm-labels.js?v=83.4.8';
 let proper = '1';
 let installed = false;
 const selections = new Map();
@@ -87,8 +87,8 @@ export function enhanceInterface(dateLabel) {
   }
   const palm=document.getElementById('palm-liturgy');
   if(palm&&!palm.hidden){
-    let procession=document.getElementById('procession-readings');
-    if(!procession){procession=document.createElement('details');procession.id='procession-readings';const title=document.createElement('summary');title.textContent='Procession readings — Liturgy of the Palms';procession.append(title,document.querySelector('.palms-card'));document.querySelector('.palm-liturgy-grid').append(procession);}
+    const procession=document.querySelector('.palms-card');
+    document.querySelector('.palm-liturgy-grid').prepend(procession);
     procession.hidden=palm.dataset.procession!=='true';
   }
   readingSelector(document.getElementById('vigil-readings'), [...document.querySelectorAll('#vigil-readings > .track-card')], 'Vigil readings', 'vigil');

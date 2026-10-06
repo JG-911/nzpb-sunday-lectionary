@@ -21,7 +21,7 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   color: var(--ink);
   background:
     radial-gradient(circle at 10% 0%, rgba(181, 122, 36, 0.09), transparent 31rem),
@@ -199,7 +199,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .reading-text { display: block; white-space: pre-line; }
 .psalm-numbering-line + .psalm-numbering-line { margin-top: 0.6rem; }
 .psalm-numbering-label { display: block; font: 0.75rem Inter, ui-sans-serif, system-ui, sans-serif; color: var(--muted); margin-bottom: 0.2rem; }
-.nzpb-numbering-reference { font-size: 0.92em; }
+.nzpb-numbering-reference { font: 400 1.03rem/1.55 Inter, ui-sans-serif, system-ui, sans-serif; }
 .easter-vigil { margin: 0.8rem 0 1.2rem; }
 .easter-vigil[hidden] { display: none; }
 .easter-vigil > summary { cursor: pointer; font-weight: 700; }
@@ -266,7 +266,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .track-card dl > div { min-height: 112px; padding: 0.95rem 1.1rem; border-top: 1px solid #e5e1d9; }
 .track-card dt { margin-bottom: 0.45rem; color: var(--muted); font-size: 0.69rem; font-weight: 850; text-transform: uppercase; letter-spacing: 0.08em; }
 .track-card dt span { float: right; padding: 0.18rem 0.4rem; border-radius: 999px; color: var(--green); background: var(--green-soft); font-size: 0.58rem; letter-spacing: 0.05em; }
-.track-card dd { margin: 0; color: #222f44; font-family: Georgia, "Times New Roman", serif; font-size: 1.03rem; line-height: 1.55; white-space: pre-line; }
+.track-card dd { margin: 0; color: #222f44; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 1.03rem; line-height: 1.55; white-space: pre-line; }
 .palm-liturgy { display: grid; gap: 1rem; }
 .palm-liturgy[hidden] { display: none; }
 .palm-instruction { padding: 1rem 1.1rem; border: 1px solid #d9c58c; border-radius: 14px; background: #fff8e6; }
@@ -274,6 +274,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .palm-instruction p { margin: 0.35rem 0 0; color: #473919; line-height: 1.55; }
 .palm-liturgy-grid { display: grid; grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr); gap: 1rem; align-items: start; }
 .palms-card header { background: linear-gradient(110deg, #6b5521, #9a7830); }
+#palm-substitution-choice label { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; max-width: 100%; }
+#palm-substitution, #annual-track { max-width: 100%; min-width: 0; }
+.annual-track-setting { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem 1rem; padding-block: 0.65rem; }
+#annual-track { padding: 0.55rem 0.8rem; min-height: 44px; font: inherit; }
+#palm-substitution-choice { min-width: 0; max-width: 100%; }
+#palm-substitution { width: auto; padding: .55rem .65rem; min-height: 44px; }
 .passion-card header { background: linear-gradient(110deg, #702e32, #9a4349); }
 .liturgy-collect { margin: 0; padding: 0.8rem 1.1rem; border-top: 1px solid #e5e1d9; color: var(--muted); font-size: 0.78rem; font-weight: 750; }
 .replaceable-reading { background: #fffaf0; }
@@ -437,6 +443,8 @@ button, .reading-action, .reading-link { touch-action: manipulation; }
 .vigil-reading-picker .reading-name-buttons button { white-space: normal; }
 #palm-procession-choice button { padding: 0.5rem 0.9rem; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--navy); }
 #palm-procession-choice button[aria-pressed="true"] { background: var(--navy); color: white; }
+#palm-gospel-choices button { padding: .5rem .65rem; max-width: 100%; white-space: normal; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+#palm-gospel-choices button[aria-pressed="true"] { background: var(--navy); color: white; }
 #palm-liturgy .palm-liturgy-grid { grid-template-columns: minmax(0,1fr); }
 #palm-liturgy .replaceable-reading dt span { display: none; }
 #procession-readings { margin-block: 0.4rem; }

@@ -1,13 +1,15 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.3";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.3";
-import { enhanceInterface } from './modules/interface.js?v=83.4.3';
-import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.3';
-import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.3';
-import {observanceHeading} from './modules/observance-heading.js?v=83.4.3';
+import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.8";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.8";
+import { enhanceInterface } from './modules/interface.js?v=83.4.8';
+import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.8';
+import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.8';
+import {observanceHeading} from './modules/observance-heading.js?v=83.4.8';
+import {trackYear,annualTrack,palmService,palmInstructions} from './modules/service-options.js?v=83.4.8';
+import {TRACK_CHOICE_STORAGE_KEY,loadTrackChoices} from './modules/preferences.js?v=83.4.8';
 
-import {createDayModel} from './modules/day-model.js?v=83.4.3';
-import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.3';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.3';
+import {createDayModel} from './modules/day-model.js?v=83.4.8';
+import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.8';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.8';
 
 (function () {
   "use strict";
@@ -27,7 +29,10 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     festivalChoiceContext: null,
     festivalReadingOverride: null,
     trackMode: "continuous",
+    trackChoices: loadTrackChoices(),
     palmProcession: true,
+    palmSubstitute: true,
+    palmGospelChoices: {},
     optionalChoices: {},
     bibleVersion: "NRSVA",
     underlyingTrackMode: "continuous"
@@ -398,7 +403,7 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
 
   function applyTrackChoice(hasRelatedSeries, mode, choice, continuousButton, relatedButton, continuousCard, relatedCard) {
     const selectedMode = hasRelatedSeries && mode === "related" ? "related" : "continuous";
-    choice.hidden = !hasRelatedSeries;
+    choice.hidden = true; // One annual choice is available in Settings, not weekly switches.
     continuousButton.classList.toggle("active", selectedMode === "continuous");
     relatedButton.classList.toggle("active", selectedMode === "related");
     continuousButton.setAttribute("aria-pressed", String(selectedMode === "continuous"));
@@ -675,25 +680,56 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     if (palmData) {
       let question=$('palm-procession-choice');
       if(!question){question=document.createElement('div');question.id='palm-procession-choice';question.className='proper-selector';elements.palmLiturgy.prepend(question);}
-      question.replaceChildren('Is there a procession? ');
+      question.replaceChildren('Procession: ');
       for(const [value,label] of [[true,'Yes'],[false,'No']]){
         const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('aria-pressed',String(state.palmProcession===value));
-        button.addEventListener('click',()=>{state.palmProcession=value;render();});question.append(button);
+        button.addEventListener('click',()=>{state.palmProcession=value;state.palmSubstitute=true;render();});question.append(button);
       }
       elements.palmLiturgy.dataset.procession=String(state.palmProcession);
-      setText(elements.palmInstructionText, palmData.instruction);
-      setReading(elements.palmsGospel, palmData.palmsGospel);
+      let substitution=$('palm-substitution-choice');
+      if(!substitution){substitution=document.createElement('div');substitution.id='palm-substitution-choice';}
+      question.append(substitution);
+      substitution.hidden=state.palmProcession;
+      substitution.replaceChildren();
+      const label=document.createElement('label');label.className='visually-hidden';label.htmlFor='palm-substitution';label.textContent='Liturgy without a procession';
+      const select=document.createElement('select');select.id='palm-substitution';
+      select.add(new Option('Liturgy of the Palms','palms'));
+      select.add(new Option('Liturgy of the Passion','passion'));
+      select.value=state.palmSubstitute?'palms':'passion';
+      select.addEventListener('change',()=>{state.palmSubstitute=select.value==='palms';render();});
+      substitution.append(label,select);
+      const chosen={...palmData};
+      let gospelChoices=$('palm-gospel-choices');
+      if(!gospelChoices){gospelChoices=document.createElement('div');gospelChoices.id='palm-gospel-choices';question.after(gospelChoices);}
+      gospelChoices.replaceChildren();
+      for(const [field,title] of [['palmsGospel','Liturgy of the Palms Gospel'],['passionGospel','Liturgy of the Passion Gospel']]){
+        const alternatives=palmData[field].split(/\s+or\s+/);
+        if(alternatives.length<2)continue;
+        const key=`${palmData.year}:${field}`;
+        const index=state.palmGospelChoices[key]||0;chosen[field]=alternatives[index];
+        const group=document.createElement('div');group.className='proper-selector';
+        const caption=document.createElement('span');caption.textContent=title;group.append(caption);
+        for(const [i,reference] of alternatives.entries()){
+          const button=document.createElement('button');button.type='button';button.textContent=reference;button.setAttribute('aria-pressed',String(index===i));
+          button.addEventListener('click',()=>{state.palmGospelChoices[key]=i;render();});group.append(button);
+        }
+        group.hidden=field==='palmsGospel'&&!state.palmProcession&&!state.palmSubstitute;
+        gospelChoices.append(group);
+      }
+      setText(elements.palmInstructionText, palmInstructions);
+      setReading(elements.palmsGospel, chosen.palmsGospel);
       setReading(elements.palmsPsalm, palmData.palmsPsalm);
       setText(elements.palmsCollect, palmData.palmsCollect);
-      const first=state.palmProcession?palmData.passionOt:palmData.palmsGospel;
-      const psalm=state.palmProcession?palmData.passionPsalm:palmData.palmsPsalm;
+      const service=palmService(chosen,state.palmProcession,state.palmSubstitute);
+      const {first,psalm}=service;
+      for(const hint of document.querySelectorAll('.replaceable-reading dt span'))hint.hidden=true;
       setReading(elements.passionOt, first);
       setReading(elements.passionPsalm, psalm);
       setReading(elements.passionNt, palmData.passionNt);
-      setReading(elements.passionGospel, palmData.passionGospel);
-      setReadingSetActions(document.querySelector(".palms-card"), [palmData.palmsGospel, palmData.palmsPsalm], "Palms set");
-      document.querySelector('.passion-card h3').textContent=state.palmProcession?'Liturgy of the Passion':'Readings without a procession';
-      setReadingSetActions(document.querySelector(".passion-card"), [first, psalm, palmData.passionNt, palmData.passionGospel], "all readings");
+      setReading(elements.passionGospel, chosen.passionGospel);
+      setReadingSetActions(document.querySelector(".palms-card"), [chosen.palmsGospel, palmData.palmsPsalm], "Palms set");
+      document.querySelector('.passion-card h3').textContent=service.title;
+      setReadingSetActions(document.querySelector(".passion-card"), [...(state.palmProcession?[chosen.palmsGospel,palmData.palmsPsalm]:[]),first, psalm, palmData.passionNt, chosen.passionGospel], "all readings");
       return;
     }
 
@@ -756,6 +792,9 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
       state.month = new Date(state.selected.getFullYear(), state.selected.getMonth(), 1, 12);
       state.festivalReadingOverride = null;
     }
+    state.trackChoices=loadTrackChoices();
+    state.trackMode=annualTrack(state.trackChoices,state.selected);
+    state.underlyingTrackMode=state.trackMode;
     const preferences=calendarPreferences();
     const day=createDayModel(state.selected,preferences,state.direction,state.festivalReadingOverride);
     renderCalendar(day);
@@ -764,6 +803,18 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
     renderFas(state.selected, preferences, selectDate, setReading, createSetActions, day);
     enhanceInterface(core.formatLong(state.selected));
     buildReadingWorkspace(day,core.formatISO(state.selected));
+    const year=trackYear(state.selected);
+    const trackLabel=document.createElement('label');trackLabel.className='annual-track-setting';trackLabel.textContent=`Reading series · Year ${core.liturgicalContext(state.selected).cycle} `;
+    const trackSelect=document.createElement('select');trackSelect.id='annual-track';
+    trackSelect.add(new Option('Continuous','continuous'));trackSelect.add(new Option('Related','related'));trackSelect.value=state.trackMode;
+    trackSelect.addEventListener('change',()=>{
+      const choices={...state.trackChoices,[year]:trackSelect.value};
+      if(!saveChoices(TRACK_CHOICE_STORAGE_KEY,choices)){alert('Your browser could not save this annual choice. Please allow site storage and try again.');trackSelect.value=state.trackMode;return;}
+      render();
+    });
+    trackLabel.append(trackSelect);
+    const trackNote=document.createElement('p');trackNote.textContent=`For the selected liturgical year (${year}–${year+1}). Keep the same series after Trinity. Saved on this device only.`;
+    $('reading-settings-panel').append(trackLabel,trackNote);
     $('selected-date').value = core.formatISO(state.selected);
     $('sunday-navigation').hidden = !state.sundaysOnly;
     for (const [id, active] of [['all-days-mode', !state.sundaysOnly], ['sundays-only-mode', state.sundaysOnly]]) {
@@ -837,10 +888,6 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
   elements.yearSelect.addEventListener("keydown", event => { if (event.key === "Enter") applySelectedYear(); });
   elements.previousMonth.addEventListener("click", () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1, 12); render(); });
   elements.nextMonth.addEventListener("click", () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1, 12); render(); });
-  elements.continuousTrackMode.addEventListener("click", () => { state.trackMode = "continuous"; render(); });
-  elements.relatedTrackMode.addEventListener("click", () => { state.trackMode = "related"; render(); });
-  elements.underlyingContinuousTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "continuous"; render(); });
-  elements.underlyingRelatedTrackMode.addEventListener("click", () => { state.underlyingTrackMode = "related"; render(); });
   elements.saintChoiceOfficial.addEventListener("click", () => setFestivalChoice("official"));
   elements.saintChoiceAlternative.addEventListener("click", () => setFestivalChoice("alternative"));
   window.addEventListener("storage", event => {

@@ -1,6 +1,7 @@
 // Presentation only: choosing a reading does not change observance preferences.
-import {observanceNotice} from './observance-notice.js?v=83.4.3';
+import {observanceNotice} from './observance-notice.js?v=83.4.8';
 let undo=[];
+let settingsOpen=false;
 const choices=new Map();
 export function resetReadingWorkspace(){
   for(const restore of undo.reverse())restore();
@@ -17,9 +18,10 @@ function property(node,key,value){const old=node[key];node[key]=value;undo.push(
 export function buildReadingWorkspace(day,date){
   const root=document.getElementById('readings');
   const workspace=document.createElement('div');workspace.id='reading-workspace';root.prepend(workspace);
-  const settings=document.createElement('div');settings.className='reading-settings';settings.id='reading-settings-panel';settings.hidden=true;
+  const settings=document.createElement('div');settings.className='reading-settings';settings.id='reading-settings-panel';settings.hidden=!settingsOpen;
   const settingsTitle=document.createElement('button');settingsTitle.type='button';settingsTitle.className='settings-toggle';settingsTitle.setAttribute('aria-label','Settings');settingsTitle.title='Settings';settingsTitle.setAttribute('aria-controls',settings.id);settingsTitle.setAttribute('aria-expanded','false');
-  settingsTitle.addEventListener('click',()=>{settings.hidden=!settings.hidden;settingsTitle.setAttribute('aria-expanded',String(!settings.hidden));});
+  settingsTitle.setAttribute('aria-expanded',String(settingsOpen));
+  settingsTitle.addEventListener('click',()=>{settingsOpen=!settingsOpen;settings.hidden=!settingsOpen;settingsTitle.setAttribute('aria-expanded',String(settingsOpen));});
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');
   const path=document.createElementNS(svg.namespaceURI,'path');
   // Simple six-tooth gear, drawn locally rather than relying on emoji fonts.
