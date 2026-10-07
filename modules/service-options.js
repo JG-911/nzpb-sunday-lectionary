@@ -1,4 +1,4 @@
-import {LectionaryCore as core} from '../lectionary-core.js?v=83.4.9';
+import {LectionaryCore as core} from '../lectionary-core.js?v=83.4.10';
 export function trackYear(date) {
   const year=date.getFullYear();
   return date>=core.adventOne(year)?year:year-1;

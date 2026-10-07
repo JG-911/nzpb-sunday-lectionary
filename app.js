@@ -1,15 +1,15 @@
-import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.9";
-import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.9";
-import { enhanceInterface } from './modules/interface.js?v=83.4.9';
-import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.9';
-import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.9';
-import {observanceHeading} from './modules/observance-heading.js?v=83.4.9';
-import {trackYear,annualTrack,palmService,palmInstructions} from './modules/service-options.js?v=83.4.9';
-import {TRACK_CHOICE_STORAGE_KEY,loadTrackChoices} from './modules/preferences.js?v=83.4.9';
+import { LectionaryCore as core } from "./lectionary-core.js?v=83.4.10";
+import { renderFas, requestedFasDate } from "./commemorations.js?v=83.4.10";
+import { enhanceInterface } from './modules/interface.js?v=83.4.10';
+import {resetReadingWorkspace, buildReadingWorkspace} from './modules/reading-workspace.js?v=83.4.10';
+import {psalmNoun, psalmNumberingOptions} from './modules/psalm-labels.js?v=83.4.10';
+import {observanceHeading} from './modules/observance-heading.js?v=83.4.10';
+import {trackYear,annualTrack,palmService,palmInstructions} from './modules/service-options.js?v=83.4.10';
+import {TRACK_CHOICE_STORAGE_KEY,loadTrackChoices} from './modules/preferences.js?v=83.4.10';
 
-import {createDayModel} from './modules/day-model.js?v=83.4.9';
-import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.9';
-import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.9';
+import {createDayModel} from './modules/day-model.js?v=83.4.10';
+import {sundayFeastReadings} from './modules/reading-data.js?v=83.4.10';
+import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalChoices, loadPrincipalChoices, saveChoices} from './modules/preferences.js?v=83.4.10';
 
 (function () {
   "use strict";
@@ -492,9 +492,10 @@ import {FESTIVAL_CHOICE_STORAGE_KEY, PRINCIPAL_CHOICE_STORAGE_KEY, loadFestivalC
 
   function renderColour(date, result) {
     const colour = core.liturgicalColour(date, result, calendarPreferences());
-    const palette = { white: "#f7f5ef", red: "#a53b3f", violet: "#64447e", green: "#3f7354", none: "#8b8b86", unknown: "#b57a24" };
+    const palette = { white: "#ffffff", red: "#a53b3f", violet: "#64447e", green: "#3f7354", none: "#8b8b86", unknown: "#b57a24" };
     const accent = palette[colour.primary.css] || palette.unknown;
     document.querySelector(".reading-panel").style.setProperty("--liturgical-colour", accent);
+    document.querySelector(".reading-panel").dataset.liturgicalColour = colour.primary.css;
     elements.colourBadge.hidden = false;
     elements.colourSwatch.style.background = accent;
     elements.colourLabel.textContent = `${colour.primary.code} · ${colour.primary.name}`;

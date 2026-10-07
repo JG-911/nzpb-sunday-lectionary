@@ -1,5 +1,5 @@
 // Presentation only: choosing a reading does not change observance preferences.
-import {observanceNotice} from './observance-notice.js?v=83.4.9';
+import {observanceNotice} from './observance-notice.js?v=83.4.10';
 let undo=[];
 let settingsOpen=false;
 const choices=new Map();
@@ -140,7 +140,7 @@ export function buildReadingWorkspace(day,date){
       if(/Advent|Lent/.test(name))code='V';
       else if(/Easter|Christmas|Epiphany/.test(name))code='W';
     }
-    const palette={W:'#f7f5ef',R:'#a53b3f',V:'#64447e',G:'#3f7354',NONE:'#8b8b86'};
+    const palette={W:'#ffffff',R:'#a53b3f',V:'#64447e',G:'#3f7354',NONE:'#8b8b86'};
     button.style.setProperty('--tab-colour',palette[code]||'#8b8b86');
     button.dataset.colour=code||'unconfirmed';
     entry.panel.id='reading-choice-'+entry.id;

@@ -1,5 +1,5 @@
 // Presentation only: never changes reading references, dates or preferences.
-import {psalmNoun} from './psalm-labels.js?v=83.4.9';
+import {psalmNoun} from './psalm-labels.js?v=83.4.10';
 let proper = '1';
 let installed = false;
 const selections = new Map();

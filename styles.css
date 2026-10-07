@@ -430,8 +430,13 @@ button, .reading-action, .reading-link { touch-action: manipulation; }
 .reading-settings { grid-column: 1 / -1; grid-row: 2; margin: 0; min-width: 0; }
 .reading-picker .reading-name-buttons { margin: 0; gap: 4px 3px; align-items: stretch; border-bottom: 1px solid var(--navy); }
 .reading-picker .reading-name-buttons button { position: relative; flex: 0 1 auto; min-width: 0; min-height: 36px; margin-bottom: -1px; border: 1px solid var(--line); border-top: 4px solid var(--tab-colour, #8b8b86); border-radius: 4px 4px 0 0; background: var(--paper); padding: 5px 10px; font-style: normal; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; color: var(--navy); }
-.reading-picker .reading-name-buttons button[aria-pressed="true"] { background: var(--blue-soft); border-inline-color: var(--navy); border-bottom-color: var(--navy); color: var(--navy); text-decoration: underline; text-underline-offset: 0.2em; font-weight: 650; }
+.reading-picker .reading-name-buttons button[aria-pressed="true"] { background: transparent; border-inline-color: transparent; border-bottom-color: transparent; color: var(--navy); text-decoration: underline; text-underline-offset: 0.2em; font-weight: 650; }
 .reading-picker .reading-name-buttons button:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; z-index: 1; }
+/* Deeper buff gives pure-white accents separation without extra outlines.
+   Scope this to the reading surround, not the calendar or reading cards. */
+.reading-panel { background: #e5e8e0; }
+.reading-picker .reading-name-buttons button:not([aria-pressed="true"]) { background: #e5e8e0; }
+.reading-picker .reading-name-buttons button { border-radius: 10px 10px 0 0; }
 @media (pointer: coarse) { .reading-picker .reading-name-buttons button { min-height: 44px; } }
 .reading-observance-note { padding: 0.65rem 0; margin: 0 0 0.5rem; border-bottom: 1px solid var(--line); line-height: 1.5; color: var(--navy); }
 /* Compact natural-flow spacing; no fixed reading-panel heights. */
